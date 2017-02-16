@@ -47,10 +47,10 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			if (kextList[i].loadIndex == index) {
                 if (!(progressState & ProcessingState::GraphicsDevicePolicyPatched) && !strcmp(kextList[i].id, "com.apple.driver.AppleGraphicsDevicePolicy")) {
                     DBGLOG("ngfx @ found com.apple.driver.AppleGraphicsDevicePolicy");
-                    const char *find    = "board-id";
-                    const char *replace = "board-ix";
+                    const uint8_t find[]    = {0xBA, 0x05, 0x00, 0x00, 0x00};
+                    const uint8_t replace[] = {0xBA, 0x00, 0x00, 0x00, 0x00};
                     KextPatch kext_patch {
-                        {&kextList[i], reinterpret_cast<const uint8_t *>(find), reinterpret_cast<const uint8_t *>(replace), strlen(find), 1},
+                        {&kextList[i], find, replace, sizeof(find), 1},
 						KernelVersion::MountainLion, KernelVersion::Sierra
 					};
                     applyPatches(patcher, index, &kext_patch, 1);
