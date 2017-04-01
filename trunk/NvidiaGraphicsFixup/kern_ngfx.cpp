@@ -18,7 +18,7 @@
 static const char *kextGraphicsDevicePolicy[] { "/System/Library/Extensions/AppleGraphicsControl.kext/Contents/PlugIns/AppleGraphicsDevicePolicy.kext/Contents/MacOS/AppleGraphicsDevicePolicy" };
 
 static KernelPatcher::KextInfo kextList[] {
-	{ "com.apple.driver.AppleGraphicsDevicePolicy", kextGraphicsDevicePolicy, 1, false, {}, KernelPatcher::KextInfo::Unloaded }
+	{ "com.apple.driver.AppleGraphicsDevicePolicy", kextGraphicsDevicePolicy, 1, true, {}, KernelPatcher::KextInfo::Unloaded }
 };
 
 static size_t kextListSize {1};
