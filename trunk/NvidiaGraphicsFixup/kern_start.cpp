@@ -34,7 +34,7 @@ PluginConfiguration ADDPR(config) {
 	bootargBeta,
 	sizeof(bootargBeta)/sizeof(bootargBeta[0]),
 	KernelVersion::MountainLion,
-	KernelVersion::Sierra,
+	KernelVersion::HighSierra,
 	[]() {
 		ngfx.init();
 	}

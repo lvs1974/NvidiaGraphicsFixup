@@ -1,6 +1,9 @@
 NvidiaGraphicsFixup Changelog
 =============================
 
+#### v1.1.3
+- High Sierra compatibility
+
 #### v1.1.2
 - Added OSBundleCompatibleVersion
 
