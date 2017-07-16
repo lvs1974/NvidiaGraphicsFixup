@@ -51,7 +51,7 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                     const uint8_t replace[] = {0xBA, 0x00, 0x00, 0x00, 0x00};
                     KextPatch kext_patch {
                         {&kextList[i], find, replace, sizeof(find), 1},
-						KernelVersion::MountainLion, KernelVersion::Sierra
+						KernelVersion::MountainLion, KernelPatcher::KernelAny
 					};
                     applyPatches(patcher, index, &kext_patch, 1);
                     progressState |= ProcessingState::GraphicsDevicePolicyPatched;
