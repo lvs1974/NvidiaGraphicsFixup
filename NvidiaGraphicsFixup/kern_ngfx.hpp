@@ -36,12 +36,12 @@ private:
     /**
      *  SetAccelProperties callback type
      */
-    using t_set_accel_properties = int (*) (IOService * that);
+    using t_set_accel_properties = void (*) (IOService * that);
     
     /**
      *  Hooked methods / callbacks
      */
-    static int SetAccelProperties(IOService* that);
+    static void SetAccelProperties(IOService* that);
     
     /**
      *  Trampolines for original method invocations
