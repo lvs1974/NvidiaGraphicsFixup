@@ -9,6 +9,7 @@
 #define kern_ngfx_hpp
 
 #include <Headers/kern_patcher.hpp>
+#include <Library/LegacyIOService.h>
 
 struct KextPatch {
     KernelPatcher::LookupPatch patch;
@@ -33,6 +34,21 @@ private:
 	void processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
     
     /**
+     *  SetAccelProperties callback type
+     */
+    using t_set_accel_properties = int (*) (IOService * that);
+    
+    /**
+     *  Hooked methods / callbacks
+     */
+    static int SetAccelProperties(IOService* that);
+    
+    /**
+     *  Trampolines for original method invocations
+     */
+    t_set_accel_properties orgSetAccelProperties {nullptr};
+    
+    /**
      *  Apply kext patches for loaded kext index
      *
      *  @param patcher    KernelPatcher instance
@@ -49,7 +65,9 @@ private:
 		enum {
 			NothingReady = 0,
 			GraphicsDevicePolicyPatched = 2,
-			EverythingDone = GraphicsDevicePolicyPatched,
+            GeForceRouted = 4,
+            GeForceWebRouted = 8,
+			EverythingDone = GraphicsDevicePolicyPatched | GeForceRouted | GeForceWebRouted,
 		};
 	};
     int progressState {ProcessingState::NothingReady};
