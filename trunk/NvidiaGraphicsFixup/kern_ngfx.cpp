@@ -113,36 +113,29 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	patcher.clearError();
 }
 
-int NGFX::SetAccelProperties(IOService* that)
+void NGFX::SetAccelProperties(IOService* that)
 {
     DBGLOG("ngfx", "SetAccelProperties is called");
-    int result = 0;
     
     if (callbackNGFX && callbackNGFX->orgSetAccelProperties)
     {
-        result = callbackNGFX->orgSetAccelProperties(that);
-        if (result != 0)
+        callbackNGFX->orgSetAccelProperties(that);
+
+        int32_t rendererId = 0, rendererSubId = 0;
+        if (!WIOKit::getOSDataValue(that, "IOVARendererID", rendererId))
         {
-            DBGLOG("ngfx", "original SetAccelProperties returned value 0x%08x", result);
-            
-            int32_t rendererId = 0, rendererSubId = 0;
-            if (!WIOKit::getOSDataValue(that, "IOVARendererID", rendererId))
-            {
-                rendererId = 0x1040008;
-                that->setProperty("IOVARendererID", rendererId);
-                DBGLOG("ngfx", "set IOVARendererID to value 0x%08x", rendererId);
-            }
-            
-            if (!WIOKit::getOSDataValue(that, "IOVARendererSubID", rendererSubId))
-            {
-                rendererSubId = 3;
-                that->setProperty("IOVARendererSubID", rendererSubId);
-                DBGLOG("ngfx", "set IOVARendererID to value 0x%08x", rendererSubId);
-            }
+            rendererId = 0x1040008;
+            that->setProperty("IOVARendererID", rendererId);
+            DBGLOG("ngfx", "set IOVARendererID to value 0x%08x", rendererId);
+        }
+        
+        if (!WIOKit::getOSDataValue(that, "IOVARendererSubID", rendererSubId))
+        {
+            rendererSubId = 3;
+            that->setProperty("IOVARendererSubID", rendererSubId);
+            DBGLOG("ngfx", "set IOVARendererID to value 0x%08x", rendererSubId);
         }
     }
-    
-    return result;
 }
 
 void NGFX::applyPatches(KernelPatcher &patcher, size_t index, const KextPatch *patches, size_t patchNum) {
