@@ -23,6 +23,13 @@ public:
 	void deinit();
 	
 private:
+    /**
+     *  Patch kernel
+     *
+     *  @param patcher KernelPatcher instance
+     */
+    void processKernel(KernelPatcher &patcher);
+    
 	/**
 	 *  Patch kext if needed and prepare other patches
 	 *
@@ -39,14 +46,31 @@ private:
     using t_set_accel_properties = void (*) (IOService * that);
     
     /**
+     *  csfg_get_platform_binary callback type
+     */
+    using t_csfg_get_platform_binary = int (*) (void * fg);
+    
+    /**
+     *  csfg_get_teamid callback type
+     */
+    using t_csfg_get_teamid = const char* (*) (void *fg);
+    
+    /**
      *  Hooked methods / callbacks
      */
     static void SetAccelProperties(IOService* that);
+    
+    static int csfg_get_platform_binary(void *fg);
     
     /**
      *  Trampolines for original method invocations
      */
     t_set_accel_properties orgSetAccelProperties {nullptr};
+    
+    t_csfg_get_platform_binary org_csfg_get_platform_binary {nullptr};
+    
+    t_csfg_get_teamid csfg_get_teamid {nullptr};
+    
     
     /**
      *  Apply kext patches for loaded kext index
@@ -67,10 +91,13 @@ private:
 			GraphicsDevicePolicyPatched = 2,
             GeForceRouted = 4,
             GeForceWebRouted = 8,
-			EverythingDone = GraphicsDevicePolicyPatched | GeForceRouted | GeForceWebRouted,
+            KernelRouted = 16,
+			EverythingDone = GraphicsDevicePolicyPatched | GeForceRouted | GeForceWebRouted | KernelRouted,
 		};
 	};
     int progressState {ProcessingState::NothingReady};
+    
+    static constexpr const char* kNvidiaTeamId { "6KR3T733EC" };
 };
 
 #endif /* kern_ngfx */

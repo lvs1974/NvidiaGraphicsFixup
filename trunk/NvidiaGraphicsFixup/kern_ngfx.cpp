@@ -23,9 +23,9 @@ static const char *kextGeForceWebId { "com.nvidia.web.GeForceWeb" };
 
 
 static KernelPatcher::KextInfo kextList[] {
-    { kextGraphicsDevicePolicyId, kextGraphicsDevicePolicy, 1, {true, true}, {}, KernelPatcher::KextInfo::Unloaded },
-    { kextGeForceId,              kextGeForce,              1, {true, true}, {}, KernelPatcher::KextInfo::Unloaded },
-    { kextGeForceWebId,           kextGeForceWeb,           1, {true, true}, {}, KernelPatcher::KextInfo::Unloaded },
+    { kextGraphicsDevicePolicyId, kextGraphicsDevicePolicy, 1, {true,  false}, {}, KernelPatcher::KextInfo::Unloaded },
+    { kextGeForceId,              kextGeForce,              1, {false, false}, {}, KernelPatcher::KextInfo::Unloaded },
+    { kextGeForceWebId,           kextGeForceWeb,           1, {false, false}, {}, KernelPatcher::KextInfo::Unloaded },
 };
 
 static size_t kextListSize {3};
@@ -33,15 +33,28 @@ static size_t kextListSize {3};
 // Only used in apple-driven callbacks
 static NGFX *callbackNGFX = nullptr;
 
+
 bool NGFX::init() {
-	LiluAPI::Error error = lilu.onKextLoad(kextList, kextListSize,
-	[](void *user, KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-        callbackNGFX = static_cast<NGFX *>(user);
-		callbackNGFX->processKext(patcher, index, address, size);
-	}, this);
+    
+    LiluAPI::Error error = lilu.onPatcherLoad(
+        [](void *user, KernelPatcher &patcher) {
+          callbackNGFX = static_cast<NGFX *>(user);
+          callbackNGFX->processKernel(patcher);
+        }, this);
+    
+    if (error != LiluAPI::Error::NoError) {
+        SYSLOG("ngfx", "failed to register onPatcherLoad method %d", error);
+        return false;
+    }
+    
+	error = lilu.onKextLoad(kextList, kextListSize,
+        [](void *user, KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+            callbackNGFX = static_cast<NGFX *>(user);
+            callbackNGFX->processKext(patcher, index, address, size);
+        }, this);
 	
 	if (error != LiluAPI::Error::NoError) {
-		SYSLOG("ngfx", "failed to register onPatcherLoad method %d", error);
+		SYSLOG("ngfx", "failed to register onKextLoad method %d", error);
 		return false;
 	}
 	
@@ -49,6 +62,39 @@ bool NGFX::init() {
 }
 
 void NGFX::deinit() {
+}
+
+void NGFX::processKernel(KernelPatcher &patcher) {
+    if (!(progressState & ProcessingState::KernelRouted))
+    {
+        auto method_address = patcher.solveSymbol(KernelPatcher::KernelID, "_csfg_get_teamid");
+        if (method_address) {
+            DBGLOG("ngfx", "obtained _csfg_get_teamid");
+            csfg_get_teamid = reinterpret_cast<t_csfg_get_teamid>(method_address);
+            
+            method_address = patcher.solveSymbol(KernelPatcher::KernelID, "_csfg_get_platform_binary");
+            if (method_address ) {
+                DBGLOG("ngfx", "obtained _csfg_get_platform_binary");
+                patcher.clearError();
+                org_csfg_get_platform_binary = reinterpret_cast<t_csfg_get_platform_binary>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(csfg_get_platform_binary), true));
+                if (patcher.getError() == KernelPatcher::Error::NoError) {
+                    DBGLOG("ngfx", "routed _csfg_get_platform_binary");
+                } else {
+                    SYSLOG("ngfx", "failed to route _csfg_get_platform_binary");
+                }
+            } else {
+                SYSLOG("ngfx", "failed to resolve _csfg_get_platform_binary");
+            }
+            
+        } else {
+            SYSLOG("ngfx", "failed to resolve _csfg_get_teamid");
+        }
+        
+        progressState |= ProcessingState::KernelRouted;
+    }
+    
+    // Ignore all the errors for other processors
+    patcher.clearError();
 }
 
 void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
@@ -108,7 +154,7 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			}
 		}
 	}
-	
+    
 	// Ignore all the errors for other processors
 	patcher.clearError();
 }
@@ -136,6 +182,31 @@ void NGFX::SetAccelProperties(IOService* that)
             DBGLOG("ngfx", "set IOVARendererID to value 0x%08x", rendererSubId);
         }
     }
+}
+
+int NGFX::csfg_get_platform_binary(void *fg)
+{
+    //DBGLOG("ngfx", "csfg_get_platform_binary is called"); // is called quite often
+    
+    if (callbackNGFX && callbackNGFX->org_csfg_get_platform_binary && callbackNGFX->csfg_get_teamid)
+    {
+        int result = callbackNGFX->org_csfg_get_platform_binary(fg);
+        if (result)
+        {
+            // Special case NVIDIA drivers
+            const char *teamId = callbackNGFX->csfg_get_teamid(fg);
+            if (teamId != nullptr && strcmp(teamId, kNvidiaTeamId) == 0)
+            {
+                DBGLOG("ngfx", "platform binary override for %s", kNvidiaTeamId);
+                return 0;
+            }
+        }
+        
+        return result;
+    }
+    
+    // Default to error
+    return 1;
 }
 
 void NGFX::applyPatches(KernelPatcher &patcher, size_t index, const KextPatch *patches, size_t patchNum) {
