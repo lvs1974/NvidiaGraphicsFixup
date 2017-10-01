@@ -35,19 +35,23 @@ static NGFX *callbackNGFX = nullptr;
 
 
 bool NGFX::init() {
+	if (getKernelVersion() > KernelVersion::Mavericks)
+	{
+		LiluAPI::Error error = lilu.onPatcherLoad(
+		  [](void *user, KernelPatcher &patcher) {
+			  callbackNGFX = static_cast<NGFX *>(user);
+			  callbackNGFX->processKernel(patcher);
+		  }, this);
+
+		if (error != LiluAPI::Error::NoError) {
+			SYSLOG("ngfx", "failed to register onPatcherLoad method %d", error);
+			return false;
+		}
+	} else {
+		progressState |= ProcessingState::KernelRouted;
+	}
     
-    LiluAPI::Error error = lilu.onPatcherLoad(
-        [](void *user, KernelPatcher &patcher) {
-          callbackNGFX = static_cast<NGFX *>(user);
-          callbackNGFX->processKernel(patcher);
-        }, this);
-    
-    if (error != LiluAPI::Error::NoError) {
-        SYSLOG("ngfx", "failed to register onPatcherLoad method %d", error);
-        return false;
-    }
-    
-	error = lilu.onKextLoad(kextList, kextListSize,
+	LiluAPI::Error error = lilu.onKextLoad(kextList, kextListSize,
         [](void *user, KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
             callbackNGFX = static_cast<NGFX *>(user);
             callbackNGFX->processKext(patcher, index, address, size);
@@ -167,19 +171,18 @@ void NGFX::SetAccelProperties(IOService* that)
     {
         callbackNGFX->orgSetAccelProperties(that);
 
-        int32_t rendererId = 0, rendererSubId = 0;
-        if (!WIOKit::getOSDataValue(that, "IOVARendererID", rendererId))
+        if (!that->getProperty("IOVARendererID"))
         {
-            rendererId = 0x1040008;
-            that->setProperty("IOVARendererID", rendererId);
-            DBGLOG("ngfx", "set IOVARendererID to value 0x%08x", rendererId);
+			uint8_t rendererId[] {0x08, 0x00, 0x04, 0x01};
+            that->setProperty("IOVARendererID", rendererId, sizeof(rendererId));
+            DBGLOG("ngfx", "set IOVARendererID to 08 00 04 01");
         }
         
-        if (!WIOKit::getOSDataValue(that, "IOVARendererSubID", rendererSubId))
+        if (!that->getProperty("IOVARendererSubID"))
         {
-            rendererSubId = 3;
-            that->setProperty("IOVARendererSubID", rendererSubId);
-            DBGLOG("ngfx", "set IOVARendererID to value 0x%08x", rendererSubId);
+			uint8_t rendererSubId[] {0x03, 0x00, 0x00, 0x00};
+            that->setProperty("IOVARendererSubID", rendererSubId, sizeof(rendererSubId));
+            DBGLOG("ngfx", "set IOVARendererSubID to value 03 00 00 00");
         }
     }
 }
@@ -191,14 +194,14 @@ int NGFX::csfg_get_platform_binary(void *fg)
     if (callbackNGFX && callbackNGFX->org_csfg_get_platform_binary && callbackNGFX->csfg_get_teamid)
     {
         int result = callbackNGFX->org_csfg_get_platform_binary(fg);
-        if (result)
+        if (!result)
         {
             // Special case NVIDIA drivers
             const char *teamId = callbackNGFX->csfg_get_teamid(fg);
             if (teamId != nullptr && strcmp(teamId, kNvidiaTeamId) == 0)
             {
                 DBGLOG("ngfx", "platform binary override for %s", kNvidiaTeamId);
-                return 0;
+                return 1;
             }
         }
         
@@ -206,7 +209,7 @@ int NGFX::csfg_get_platform_binary(void *fg)
     }
     
     // Default to error
-    return 1;
+    return 0;
 }
 
 void NGFX::applyPatches(KernelPatcher &patcher, size_t index, const KextPatch *patches, size_t patchNum) {
