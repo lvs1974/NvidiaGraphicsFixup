@@ -23,12 +23,12 @@ static const char *kextGeForceWebId { "com.nvidia.web.GeForceWeb" };
 
 
 static KernelPatcher::KextInfo kextList[] {
-    { kextGraphicsDevicePolicyId, kextGraphicsDevicePolicy, 1, {true,  false}, {}, KernelPatcher::KextInfo::Unloaded },
-    { kextGeForceId,              kextGeForce,              1, {false, false}, {}, KernelPatcher::KextInfo::Unloaded },
-    { kextGeForceWebId,           kextGeForceWeb,           1, {false, false}, {}, KernelPatcher::KextInfo::Unloaded },
+    { kextGraphicsDevicePolicyId, kextGraphicsDevicePolicy, 1, {true}, {}, KernelPatcher::KextInfo::Unloaded },
+    { kextGeForceId,              kextGeForce,              1, {},     {}, KernelPatcher::KextInfo::Unloaded },
+    { kextGeForceWebId,           kextGeForceWeb,           1, {},     {}, KernelPatcher::KextInfo::Unloaded },
 };
 
-static size_t kextListSize {3};
+static size_t kextListSize {arrsize(kextList)};
 
 // Only used in apple-driven callbacks
 static NGFX *callbackNGFX = nullptr;
@@ -153,6 +153,90 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                         SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
                     }
                     
+//                    method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent5startEP9IOService");
+//                    if (method_address) {
+//                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent5startEP9IOService");
+//                        patcher.clearError();
+//                        orgAccelStart = reinterpret_cast<t_accel_start>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AccelStart), true));
+//                        if (patcher.getError() == KernelPatcher::Error::NoError) {
+//                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent5startEP9IOService");
+//                        } else {
+//                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent5startEP9IOService");
+//                        }
+//                    } else {
+//                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent5startEP9IOService");
+//                    }
+//
+//                    method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent10InitializeEv");
+//                    if (method_address) {
+//                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent10InitializeEv");
+//                        patcher.clearError();
+//                        orgAccelInit = reinterpret_cast<t_accel_init>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AccelInit), true));
+//                        if (patcher.getError() == KernelPatcher::Error::NoError) {
+//                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent10InitializeEv");
+//                        } else {
+//                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent10InitializeEv");
+//                        }
+//                    } else {
+//                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent10InitializeEv");
+//                    }
+//
+//                    method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent16InitializeResmanEv");
+//                    if (method_address) {
+//                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent16InitializeResmanEv");
+//                        patcher.clearError();
+//                        orgAccelInitResman = reinterpret_cast<t_accel_init_resman>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AccelInitResman), true));
+//                        if (patcher.getError() == KernelPatcher::Error::NoError) {
+//                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent16InitializeResmanEv");
+//                        } else {
+//                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent16InitializeResmanEv");
+//                        }
+//                    } else {
+//                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent16InitializeResmanEv");
+//                    }
+//
+//                    method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent13ContactResmanEv");
+//                    if (method_address) {
+//                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent13ContactResmanEv");
+//                        patcher.clearError();
+//                        orgAccelContantResman = reinterpret_cast<t_accel_contact_resman>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AccelContactResman), true));
+//                        if (patcher.getError() == KernelPatcher::Error::NoError) {
+//                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent13ContactResmanEv");
+//                        } else {
+//                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent13ContactResmanEv");
+//                        }
+//                    } else {
+//                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent13ContactResmanEv");
+//                    }
+//
+//                    method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent16InitializeDeviceEv");
+//                    if (method_address) {
+//                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent16InitializeDeviceEv");
+//                        patcher.clearError();
+//                        orgAccelInitDevice = reinterpret_cast<t_accel_init_device>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AccelInitDevice), true));
+//                        if (patcher.getError() == KernelPatcher::Error::NoError) {
+//                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent16InitializeDeviceEv");
+//                        } else {
+//                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent16InitializeDeviceEv");
+//                        }
+//                    } else {
+//                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent16InitializeDeviceEv");
+//                    }
+//
+//                    method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent26CreateAndInitMemoryObjectsEv");
+//                    if (method_address) {
+//                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent26CreateAndInitMemoryObjectsEv");
+//                        patcher.clearError();
+//                        orgAccelCreateAndInitMemoryObjects = reinterpret_cast<t_accel_create_and_init_mem_obj>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AccelCreateAndInitMemoryObjects), true));
+//                        if (patcher.getError() == KernelPatcher::Error::NoError) {
+//                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent26CreateAndInitMemoryObjectsEv");
+//                        } else {
+//                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent26CreateAndInitMemoryObjectsEv");
+//                        }
+//                    } else {
+//                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent26CreateAndInitMemoryObjectsEv");
+//                    }
+                    
                     progressState |= ProcessingState::GeForceWebRouted;
                 }
 			}
@@ -186,6 +270,84 @@ void NGFX::SetAccelProperties(IOService* that)
         }
     }
 }
+
+//bool NGFX::AccelStart(IOService *that, IOService *parent)
+//{
+//    bool result = false;
+//    DBGLOG("ngfx", "AccelStart is called");
+//    if (callbackNGFX && callbackNGFX->orgAccelStart)
+//    {
+//        result = callbackNGFX->orgAccelStart(that, parent);
+//        DBGLOG("ngfx", "orgAccelStart returned %d", result);
+//    }
+//
+//    return result;
+//}
+//
+//bool NGFX::AccelInit(IOService *that)
+//{
+//    bool result = false;
+//    DBGLOG("ngfx", "AccelInit is called");
+//    if (callbackNGFX && callbackNGFX->orgAccelInit)
+//    {
+//        result = callbackNGFX->orgAccelInit(that);
+//        DBGLOG("ngfx", "orgAccelInit returned %d", result);
+//    }
+//
+//    return result;
+//}
+//
+//bool NGFX::AccelInitResman(IOService *that)
+//{
+//    bool result = false;
+//    DBGLOG("ngfx", "AccelInitResman is called");
+//    if (callbackNGFX && callbackNGFX->orgAccelInitResman)
+//    {
+//        result = callbackNGFX->orgAccelInitResman(that);
+//        DBGLOG("ngfx", "orgAccelInitResman returned %d", result);
+//    }
+//
+//    return result;
+//}
+//
+//bool NGFX::AccelContactResman(IOService *that)
+//{
+//    bool result = false;
+//    DBGLOG("ngfx", "AccelContactResman is called");
+//    if (callbackNGFX && callbackNGFX->orgAccelContantResman)
+//    {
+//        result = callbackNGFX->orgAccelContantResman(that);
+//        DBGLOG("ngfx", "orgAccelContantResman returned %d", result);
+//    }
+//
+//    return result;
+//}
+//
+//bool NGFX::AccelInitDevice(IOService *that)
+//{
+//    bool result = false;
+//    DBGLOG("ngfx", "AccelInitDevice is called");
+//    if (callbackNGFX && callbackNGFX->orgAccelInitDevice)
+//    {
+//        result = callbackNGFX->orgAccelInitDevice(that);
+//        DBGLOG("ngfx", "orgAccelInitDevice returned %d", result);
+//    }
+//
+//    return result;
+//}
+//
+//bool NGFX::AccelCreateAndInitMemoryObjects(IOService *that)
+//{
+//    bool result = false;
+//    DBGLOG("ngfx", "AccelCreateAndInitMemoryObjects is called");
+//    if (callbackNGFX && callbackNGFX->orgAccelCreateAndInitMemoryObjects)
+//    {
+//        result = callbackNGFX->orgAccelCreateAndInitMemoryObjects(that);
+//        DBGLOG("ngfx", "orgAccelCreateAndInitMemoryObjects returned %d", result);
+//    }
+//
+//    return result;
+//}
 
 int NGFX::csfg_get_platform_binary(void *fg)
 {

@@ -45,6 +45,21 @@ private:
      */
     using t_set_accel_properties = void (*) (IOService * that);
     
+    using t_accel_start = bool (*) (IOService *that, IOService *parent);
+    
+    using t_accel_init = bool (*) (IOService *that);
+    
+    using t_accel_init_resman = bool (*) (IOService *that);
+
+    using t_accel_contact_resman = bool (*) (IOService *that);
+    
+    using t_accel_init_device = bool (*) (IOService *that);
+    
+    using t_accel_create_and_init_mem_obj = bool (*) (IOService *that);
+    
+
+
+    
     /**
      *  csfg_get_platform_binary callback type
      */
@@ -60,12 +75,38 @@ private:
      */
     static void SetAccelProperties(IOService* that);
     
+    static bool AccelStart(IOService *that, IOService *parent);
+    
+    static bool AccelInit(IOService *that);
+    
+    static bool AccelInitResman(IOService *that);
+    
+    static bool AccelContactResman(IOService *that);
+    
+    static bool AccelInitDevice(IOService *that);
+    
+    static bool AccelCreateAndInitMemoryObjects(IOService *that);
+    
+    
     static int csfg_get_platform_binary(void *fg);
     
     /**
      *  Trampolines for original method invocations
      */
     t_set_accel_properties orgSetAccelProperties {nullptr};
+    
+    t_accel_start orgAccelStart {nullptr};
+    
+    t_accel_init orgAccelInit {nullptr};
+    
+    t_accel_init_resman orgAccelInitResman {nullptr};
+    
+    t_accel_contact_resman orgAccelContantResman {nullptr};
+    
+    t_accel_init_device orgAccelInitDevice {nullptr};
+    
+    t_accel_create_and_init_mem_obj orgAccelCreateAndInitMemoryObjects {nullptr};
+    
     
     t_csfg_get_platform_binary org_csfg_get_platform_binary {nullptr};
     
