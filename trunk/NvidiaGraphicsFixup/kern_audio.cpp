@@ -6,6 +6,7 @@
 //
 
 #include <Headers/kern_iokit.hpp>
+#include <Headers/plugin_start.hpp>
 
 #include "kern_audio.hpp"
 
@@ -39,6 +40,10 @@ uint32_t NVidiaAudio::getAnalogLayout() {
 }
 
 IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
+	if (!ADDPR(startSuccess)) {
+		return nullptr;
+	}
+
 	if (!hdaService) {
 		DBGLOG("audio", "received null digitial audio device");
 		return nullptr;
