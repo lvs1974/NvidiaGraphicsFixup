@@ -16,8 +16,8 @@ An open source kernel extension providing patches for NVidia GPUs.
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS  
-- [vit9696](https://github.com/vit9696) for [Lilu.kext](https://github.com/vit9696/Lilu) & for patch
-- [Pike R. Alpha](https://github.com/Piker-Alpha) for AppleGraphicsDevicePolicy.kext patch
+- [vit9696](https://github.com/vit9696) for [Lilu.kext](https://github.com/vit9696/Lilu) & for zero-length string comparison patch (AppleGraphicsDevicePolicy.kext )
+- [Pike R. Alpha](https://github.com/Piker-Alpha) for board-id patch (AppleGraphicsDevicePolicy.kext)
 - [igork](https://applelife.ru/members/igork.564) for adding properties IOVARendererID & IOVARendererSubID in nvAcceleratorParent::SetAccelProperties
 - [mologie](https://github.com/mologie/NVWebDriverLibValFix) for creating NVWebDriverLibValFix.kext which forces macOS to recognize NVIDIA's web drivers as platform binaries
 - [lvs1974](https://applelife.ru/members/lvs1974.53809) for writing the software and maintaining it

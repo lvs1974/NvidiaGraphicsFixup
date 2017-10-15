@@ -9,6 +9,7 @@
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_iokit.hpp>
 
+#include "kern_config.hpp"
 #include "kern_ngfx.hpp"
 
 
@@ -108,13 +109,49 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                 if (!(progressState & ProcessingState::GraphicsDevicePolicyPatched) && !strcmp(kextList[i].id, kextGraphicsDevicePolicyId))
                 {
                     DBGLOG("ngfx", "found %s", kextGraphicsDevicePolicyId);
-                    const uint8_t find[]    = {0xBA, 0x05, 0x00, 0x00, 0x00};
-                    const uint8_t replace[] = {0xBA, 0x00, 0x00, 0x00, 0x00};
-                    KextPatch kext_patch {
-                        {&kextList[i], find, replace, sizeof(find), 1},
-						KernelVersion::MountainLion, KernelPatcher::KernelAny
-					};
-                    applyPatches(patcher, index, &kext_patch, 1);
+                    
+                    const bool patch_vit9696 = (strstr(config.patch_list, "vit9696") != nullptr);
+                    const bool patch_pikera  = (strstr(config.patch_list, "pikera")  != nullptr);
+                    const bool patch_cfgmap  = (strlen(config.apgdp_config_name)     != 0);
+                    
+                    if (patch_vit9696 || (!patch_cfgmap && !patch_pikera))
+                    {
+                        const uint8_t find[]    = {0xBA, 0x05, 0x00, 0x00, 0x00};
+                        const uint8_t replace[] = {0xBA, 0x00, 0x00, 0x00, 0x00};
+                        KextPatch kext_patch {
+                            {&kextList[i], find, replace, sizeof(find), 1},
+                            KernelVersion::MountainLion, KernelPatcher::KernelAny
+                        };
+                        applyPatches(patcher, index, &kext_patch, 1, "vit9696");
+                    }
+                    
+                    if (patch_pikera)
+                    {
+                        const uint8_t find[]    = "board-id";
+                        const uint8_t replace[] = "board-ix";
+                        KextPatch kext_patch {
+                            {&kextList[i], find, replace, strlen((const char*)find), 1},
+                            KernelVersion::MountainLion, KernelPatcher::KernelAny
+                        };
+                        applyPatches(patcher, index, &kext_patch, 1, "pikera");
+                    }
+                    
+                    if (patch_cfgmap)
+                    {
+                        auto method_address = patcher.solveSymbol(index, "__ZN25AppleGraphicsDevicePolicy5startEP9IOService");
+                        if (method_address) {
+                            DBGLOG("ngfx", "obtained __ZN25AppleGraphicsDevicePolicy5startEP9IOService");
+                            patcher.clearError();
+                            orgApgdpStart = reinterpret_cast<t_apgdp_start>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AppleGraphicsDevicePolicy_start), true));
+                            if (patcher.getError() == KernelPatcher::Error::NoError) {
+                                DBGLOG("ngfx", "routed __ZN25AppleGraphicsDevicePolicy5startEP9IOService");
+                            } else {
+                                SYSLOG("ngfx", "failed to route __ZN25AppleGraphicsDevicePolicy5startEP9IOService");
+                            }
+                        } else {
+                            SYSLOG("ngfx", "failed to resolve __ZN25AppleGraphicsDevicePolicy5startEP9IOService");
+                        }
+                    }
                     progressState |= ProcessingState::GraphicsDevicePolicyPatched;
                 }
                 else if (!(progressState & ProcessingState::GeForceRouted) && !strcmp(kextList[i].id, kextGeForceId))
@@ -153,90 +190,6 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                         SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
                     }
                     
-//                    method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent5startEP9IOService");
-//                    if (method_address) {
-//                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent5startEP9IOService");
-//                        patcher.clearError();
-//                        orgAccelStart = reinterpret_cast<t_accel_start>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AccelStart), true));
-//                        if (patcher.getError() == KernelPatcher::Error::NoError) {
-//                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent5startEP9IOService");
-//                        } else {
-//                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent5startEP9IOService");
-//                        }
-//                    } else {
-//                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent5startEP9IOService");
-//                    }
-//
-//                    method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent10InitializeEv");
-//                    if (method_address) {
-//                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent10InitializeEv");
-//                        patcher.clearError();
-//                        orgAccelInit = reinterpret_cast<t_accel_init>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AccelInit), true));
-//                        if (patcher.getError() == KernelPatcher::Error::NoError) {
-//                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent10InitializeEv");
-//                        } else {
-//                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent10InitializeEv");
-//                        }
-//                    } else {
-//                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent10InitializeEv");
-//                    }
-//
-//                    method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent16InitializeResmanEv");
-//                    if (method_address) {
-//                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent16InitializeResmanEv");
-//                        patcher.clearError();
-//                        orgAccelInitResman = reinterpret_cast<t_accel_init_resman>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AccelInitResman), true));
-//                        if (patcher.getError() == KernelPatcher::Error::NoError) {
-//                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent16InitializeResmanEv");
-//                        } else {
-//                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent16InitializeResmanEv");
-//                        }
-//                    } else {
-//                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent16InitializeResmanEv");
-//                    }
-//
-//                    method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent13ContactResmanEv");
-//                    if (method_address) {
-//                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent13ContactResmanEv");
-//                        patcher.clearError();
-//                        orgAccelContantResman = reinterpret_cast<t_accel_contact_resman>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AccelContactResman), true));
-//                        if (patcher.getError() == KernelPatcher::Error::NoError) {
-//                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent13ContactResmanEv");
-//                        } else {
-//                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent13ContactResmanEv");
-//                        }
-//                    } else {
-//                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent13ContactResmanEv");
-//                    }
-//
-//                    method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent16InitializeDeviceEv");
-//                    if (method_address) {
-//                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent16InitializeDeviceEv");
-//                        patcher.clearError();
-//                        orgAccelInitDevice = reinterpret_cast<t_accel_init_device>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AccelInitDevice), true));
-//                        if (patcher.getError() == KernelPatcher::Error::NoError) {
-//                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent16InitializeDeviceEv");
-//                        } else {
-//                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent16InitializeDeviceEv");
-//                        }
-//                    } else {
-//                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent16InitializeDeviceEv");
-//                    }
-//
-//                    method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent26CreateAndInitMemoryObjectsEv");
-//                    if (method_address) {
-//                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent26CreateAndInitMemoryObjectsEv");
-//                        patcher.clearError();
-//                        orgAccelCreateAndInitMemoryObjects = reinterpret_cast<t_accel_create_and_init_mem_obj>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(AccelCreateAndInitMemoryObjects), true));
-//                        if (patcher.getError() == KernelPatcher::Error::NoError) {
-//                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent26CreateAndInitMemoryObjectsEv");
-//                        } else {
-//                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent26CreateAndInitMemoryObjectsEv");
-//                        }
-//                    } else {
-//                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent26CreateAndInitMemoryObjectsEv");
-//                    }
-                    
                     progressState |= ProcessingState::GeForceWebRouted;
                 }
 			}
@@ -271,83 +224,41 @@ void NGFX::SetAccelProperties(IOService* that)
     }
 }
 
-//bool NGFX::AccelStart(IOService *that, IOService *parent)
-//{
-//    bool result = false;
-//    DBGLOG("ngfx", "AccelStart is called");
-//    if (callbackNGFX && callbackNGFX->orgAccelStart)
-//    {
-//        result = callbackNGFX->orgAccelStart(that, parent);
-//        DBGLOG("ngfx", "orgAccelStart returned %d", result);
-//    }
-//
-//    return result;
-//}
-//
-//bool NGFX::AccelInit(IOService *that)
-//{
-//    bool result = false;
-//    DBGLOG("ngfx", "AccelInit is called");
-//    if (callbackNGFX && callbackNGFX->orgAccelInit)
-//    {
-//        result = callbackNGFX->orgAccelInit(that);
-//        DBGLOG("ngfx", "orgAccelInit returned %d", result);
-//    }
-//
-//    return result;
-//}
-//
-//bool NGFX::AccelInitResman(IOService *that)
-//{
-//    bool result = false;
-//    DBGLOG("ngfx", "AccelInitResman is called");
-//    if (callbackNGFX && callbackNGFX->orgAccelInitResman)
-//    {
-//        result = callbackNGFX->orgAccelInitResman(that);
-//        DBGLOG("ngfx", "orgAccelInitResman returned %d", result);
-//    }
-//
-//    return result;
-//}
-//
-//bool NGFX::AccelContactResman(IOService *that)
-//{
-//    bool result = false;
-//    DBGLOG("ngfx", "AccelContactResman is called");
-//    if (callbackNGFX && callbackNGFX->orgAccelContantResman)
-//    {
-//        result = callbackNGFX->orgAccelContantResman(that);
-//        DBGLOG("ngfx", "orgAccelContantResman returned %d", result);
-//    }
-//
-//    return result;
-//}
-//
-//bool NGFX::AccelInitDevice(IOService *that)
-//{
-//    bool result = false;
-//    DBGLOG("ngfx", "AccelInitDevice is called");
-//    if (callbackNGFX && callbackNGFX->orgAccelInitDevice)
-//    {
-//        result = callbackNGFX->orgAccelInitDevice(that);
-//        DBGLOG("ngfx", "orgAccelInitDevice returned %d", result);
-//    }
-//
-//    return result;
-//}
-//
-//bool NGFX::AccelCreateAndInitMemoryObjects(IOService *that)
-//{
-//    bool result = false;
-//    DBGLOG("ngfx", "AccelCreateAndInitMemoryObjects is called");
-//    if (callbackNGFX && callbackNGFX->orgAccelCreateAndInitMemoryObjects)
-//    {
-//        result = callbackNGFX->orgAccelCreateAndInitMemoryObjects(that);
-//        DBGLOG("ngfx", "orgAccelCreateAndInitMemoryObjects returned %d", result);
-//    }
-//
-//    return result;
-//}
+bool NGFX::AppleGraphicsDevicePolicy_start(IOService *that, IOService *provider)
+{
+    bool result = false;
+    
+    DBGLOG("ngfx", "AppleGraphicsDevicePolicy::start is called");    
+    if (callbackNGFX && callbackNGFX->orgApgdpStart)
+    {
+        char board_id[32];
+        if (WIOKit::getComputerInfo(nullptr, 0, board_id, sizeof(board_id)))
+        {
+            DBGLOG("ngfx", "got board-id '%s'", board_id);
+            auto dict = that->getPropertyTable();
+            auto newProps = OSDynamicCast(OSDictionary, dict->copyCollection());
+            OSDictionary *configMap = OSDynamicCast(OSDictionary, newProps->getObject("ConfigMap"));
+            if (configMap != nullptr)
+            {
+                OSString *value = OSDynamicCast(OSString, configMap->getObject(board_id));
+                if (value != nullptr)
+                    DBGLOG("ngfx", "Current value for board-id '%s' is %s", board_id, value->getCStringNoCopy());
+                if (!configMap->setObject(board_id, OSString::withCString(config.apgdp_config_name)))
+                    SYSLOG("ngfx", "Configuration for board-id '%s' can't be set, setObject was failed.", board_id);
+                else
+                    DBGLOG("ngfx", "Configuration for board-id '%s' has been set to %s", board_id, config.apgdp_config_name);
+                that->setPropertyTable(newProps);
+            }
+            else
+                SYSLOG("ngfx", "ConfigMap key was not found in personalities");
+        }
+        
+        result = callbackNGFX->orgApgdpStart(that, provider);
+        DBGLOG("ngfx", "AppleGraphicsDevicePolicy::start returned %d", result);
+    }
+    
+    return result;
+}
 
 int NGFX::csfg_get_platform_binary(void *fg)
 {
@@ -374,8 +285,8 @@ int NGFX::csfg_get_platform_binary(void *fg)
     return 0;
 }
 
-void NGFX::applyPatches(KernelPatcher &patcher, size_t index, const KextPatch *patches, size_t patchNum) {
-    DBGLOG("ngfx", "applying patches for %zu kext", index);
+void NGFX::applyPatches(KernelPatcher &patcher, size_t index, const KextPatch *patches, size_t patchNum, const char* name) {
+    DBGLOG("ngfx", "applying patch '%s' for %zu kext", name, index);
     for (size_t p = 0; p < patchNum; p++) {
         auto &patch = patches[p];
         if (patch.patch.kext->loadIndex == index) {
