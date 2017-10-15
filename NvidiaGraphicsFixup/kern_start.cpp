@@ -8,35 +8,59 @@
 #include <Headers/plugin_start.hpp>
 #include <Headers/kern_api.hpp>
 
+#include "kern_config.hpp"
 #include "kern_ngfx.hpp"
 
 static NGFX ngfx;
 
-static const char *bootargOff[] {
+const char *Configuration::bootargOff[] {
 	"-ngfxoff"
 };
 
-static const char *bootargDebug[] {
+const char *Configuration::bootargDebug[] {
 	"-ngfxdbg"
 };
 
-static const char *bootargBeta[] {
+const char *Configuration::bootargBeta[] {
 	"-ngfxbeta"
 };
+
+Configuration config;
+
+void Configuration::readArguments() {
+    char tmp[20];
+    if (PE_parse_boot_argn(bootargNoAudioCon, tmp, sizeof(tmp)))
+        noaudioconnectors = true;
+    
+    if (PE_parse_boot_argn(bootargNoAudio, tmp, sizeof(tmp)))
+        noaudiofixes = true;
+    
+    if (PE_parse_boot_argn(bootargSetConfig, apgdp_config_name, sizeof(apgdp_config_name)))
+    {
+        DBGLOG("ngfx", "boot-arg %s specified, value = %s", bootargSetConfig, apgdp_config_name);
+    }
+    
+    if (PE_parse_boot_argn(bootargPatchList, patch_list, sizeof(patch_list)))
+    {
+        DBGLOG("ngfx", "boot-arg %s specified, value = %s", bootargPatchList, patch_list);
+    }
+}
+
 
 PluginConfiguration ADDPR(config) {
 	xStringify(PRODUCT_NAME),
     parseModuleVersion(xStringify(MODULE_VERSION)),
     LiluAPI::AllowNormal | LiluAPI::AllowInstallerRecovery,
-	bootargOff,
-	arrsize(bootargOff),
-	bootargDebug,
-	arrsize(bootargDebug),
-	bootargBeta,
-	arrsize(bootargBeta),
+	config.bootargOff,
+	arrsize(config.bootargOff),
+	config.bootargDebug,
+	arrsize(config.bootargDebug),
+	config.bootargBeta,
+	arrsize(config.bootargBeta),
 	KernelVersion::MountainLion,
 	KernelVersion::HighSierra,
 	[]() {
+        config.readArguments();
 		ngfx.init();
 	}
 };

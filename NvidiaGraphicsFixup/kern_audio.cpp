@@ -8,6 +8,7 @@
 #include <Headers/kern_iokit.hpp>
 #include <Headers/plugin_start.hpp>
 
+#include "kern_config.hpp"
 #include "kern_audio.hpp"
 
 OSDefineMetaClassAndStructors(NVidiaAudio, IOService)
@@ -43,6 +44,11 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
 	if (!ADDPR(startSuccess)) {
 		return nullptr;
 	}
+    
+    if (config.noaudiofixes) {
+        DBGLOG("audio", "all audio fixes are disabled");
+        return nullptr;
+    }
 
 	if (!hdaService) {
 		DBGLOG("audio", "received null digitial audio device");
@@ -110,6 +116,11 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
 		return nullptr;
 	}
 	
+    if (gpuService->getProperty("no-audio-autofix")) {
+        DBGLOG("audio", "asked to avoid messing with digital audio");
+        return nullptr;
+    }
+    
 	auto gpuPlaneName = gpuService->getName();
 	if (!gpuPlaneName) gpuPlaneName = "(null)";
 	DBGLOG("audio", "corrects digital audio for gpu at %s with %04X:%04X", gpuPlaneName, gpuVen, gpuDev);
@@ -119,8 +130,8 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
 		return nullptr;
 	}
     
-    // Power management may cause issues for non GFX0
-    if (!gpuPlaneName || strcmp(gpuPlaneName, "GFX0")) {
+    // Power management may cause issues for non GFXx
+    if (!gpuPlaneName || strncmp(gpuPlaneName, "GFX", strlen("GFX"))) {
         DBGLOG("audio", "fixing gpu plane name to GFX0");
         gpuService->setName("GFX0");
     }
@@ -168,16 +179,18 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
 		DBGLOG("audio", "found existing layout-id in hdau");
 	}
     
-    uint8_t builtBytes[] { 0x00, 0x08, 0x00, 0x00 };
-    char connector_type[] { "@0,connector-type" };
-    for (int i=0; i<MaxConnectorCount; ++i)
-    {
-        connector_type[1] = '0' + i;
-        if (!gpuService->getProperty(connector_type)) {
-            DBGLOG("audio", "fixing %s in gpu", connector_type);
-            gpuService->setProperty(connector_type, OSData::withBytes(builtBytes, sizeof(builtBytes)));
-        } else {
-            DBGLOG("audio", "found existing %s in gpu", connector_type);
+    if (!config.noaudioconnectors && !gpuService->getProperty("no-audio-fixconn")) {
+        uint8_t builtBytes[] { 0x00, 0x08, 0x00, 0x00 };
+        char connector_type[] { "@0,connector-type" };
+        for (int i=0; i<MaxConnectorCount; ++i)
+        {
+            connector_type[1] = '0' + i;
+            if (!gpuService->getProperty(connector_type)) {
+                DBGLOG("audio", "fixing %s in gpu", connector_type);
+                gpuService->setProperty(connector_type, OSData::withBytes(builtBytes, sizeof(builtBytes)));
+            } else {
+                DBGLOG("audio", "found existing %s in gpu", connector_type);
+            }
         }
     }
 	
