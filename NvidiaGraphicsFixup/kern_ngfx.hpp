@@ -48,7 +48,7 @@ private:
     /**
      *  AppleGraphicsDevicePolicy::start callback type
      */
-    using t_apgdp_start = bool (*) (IOService *that, IOService *);
+    using t_agdp_start = bool (*) (IOService *that, IOService *);
     
     /**
      *  csfg_get_platform_binary callback type
@@ -77,7 +77,7 @@ private:
      */
     t_set_accel_properties      orgSetAccelProperties {nullptr};
     
-    t_apgdp_start               orgApgdpStart {nullptr};
+    t_agdp_start                orgAgdpStart {nullptr};
     
     t_csfg_get_platform_binary  org_csfg_get_platform_binary {nullptr};
     

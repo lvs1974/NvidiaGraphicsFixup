@@ -42,7 +42,7 @@ public:
     /**
      *  name of config used by AppleGraphicsDevicePolicy {none, Config1, Config2, Config3}
      */
-    char apgdp_config_name[15] {};
+    char agdp_config_name[15] {};
     
     /**
      *  patch list (can be separated by comma, space or something like that)
