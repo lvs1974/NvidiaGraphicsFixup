@@ -65,7 +65,7 @@ private:
     /**
      *  Hooked methods / callbacks
      */
-    static void SetAccelProperties(IOService* that);
+    static void nvAccelerator_SetAccelProperties(IOService* that);
 
     static bool AppleGraphicsDevicePolicy_start(IOService *that, IOService *provider);
     

@@ -112,9 +112,9 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                     
                     const bool patch_vit9696 = (strstr(config.patch_list, "vit9696") != nullptr);
                     const bool patch_pikera  = (strstr(config.patch_list, "pikera")  != nullptr);
-                    const bool patch_cfgmap  = (strlen(config.agdp_config_name)      != 0);
+                    const bool patch_cfgmap  = (strstr(config.patch_list, "cfgmap")  != nullptr);
                     
-                    if (patch_vit9696 || (!patch_cfgmap && !patch_pikera))
+                    if (patch_vit9696)
                     {
                         const uint8_t find[]    = {0xBA, 0x05, 0x00, 0x00, 0x00};
                         const uint8_t replace[] = {0xBA, 0x00, 0x00, 0x00, 0x00};
@@ -156,38 +156,42 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                 }
                 else if (!(progressState & ProcessingState::GeForceRouted) && !strcmp(kextList[i].id, kextGeForceId))
                 {
-                    DBGLOG("ngfx", "found %s", kextGeForceId);
-                    auto method_address = patcher.solveSymbol(index, "__ZN13nvAccelerator18SetAccelPropertiesEv");
-                    if (method_address) {
-                        DBGLOG("ngfx", "obtained __ZN13nvAccelerator18SetAccelPropertiesEv");
-                        patcher.clearError();
-                        orgSetAccelProperties = reinterpret_cast<t_set_accel_properties>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(SetAccelProperties), true));
-                        if (patcher.getError() == KernelPatcher::Error::NoError) {
-                            DBGLOG("ngfx", "routed __ZN13nvAccelerator18SetAccelPropertiesEv");
+                    if (!config.novarenderer) {
+                        DBGLOG("ngfx", "found %s", kextGeForceId);
+                        auto method_address = patcher.solveSymbol(index, "__ZN13nvAccelerator18SetAccelPropertiesEv");
+                        if (method_address) {
+                            DBGLOG("ngfx", "obtained __ZN13nvAccelerator18SetAccelPropertiesEv");
+                            patcher.clearError();
+                            orgSetAccelProperties = reinterpret_cast<t_set_accel_properties>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(nvAccelerator_SetAccelProperties), true));
+                            if (patcher.getError() == KernelPatcher::Error::NoError) {
+                                DBGLOG("ngfx", "routed __ZN13nvAccelerator18SetAccelPropertiesEv");
+                            } else {
+                                SYSLOG("ngfx", "failed to route __ZN13nvAccelerator18SetAccelPropertiesEv");
+                            }
                         } else {
-                            SYSLOG("ngfx", "failed to route __ZN13nvAccelerator18SetAccelPropertiesEv");
+                            SYSLOG("ngfx", "failed to resolve __ZN13nvAccelerator18SetAccelPropertiesEv");
                         }
-                    } else {
-                        SYSLOG("ngfx", "failed to resolve __ZN13nvAccelerator18SetAccelPropertiesEv");
                     }
                     
                     progressState |= ProcessingState::GeForceRouted;
                 }
                 else if (!(progressState & ProcessingState::GeForceWebRouted) && !strcmp(kextList[i].id, kextGeForceWebId))
                 {
-                    DBGLOG("ngfx", "found %s", kextGeForceWebId);
-                    auto method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent18SetAccelPropertiesEv");
-                    if (method_address) {
-                        DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
-                        patcher.clearError();
-                        orgSetAccelProperties = reinterpret_cast<t_set_accel_properties>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(SetAccelProperties), true));
-                        if (patcher.getError() == KernelPatcher::Error::NoError) {
-                            DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
+                    if (!config.novarenderer) {
+                        DBGLOG("ngfx", "found %s", kextGeForceWebId);
+                        auto method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent18SetAccelPropertiesEv");
+                        if (method_address) {
+                            DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
+                            patcher.clearError();
+                            orgSetAccelProperties = reinterpret_cast<t_set_accel_properties>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(nvAccelerator_SetAccelProperties), true));
+                            if (patcher.getError() == KernelPatcher::Error::NoError) {
+                                DBGLOG("ngfx", "routed __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
+                            } else {
+                                SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
+                            }
                         } else {
-                            SYSLOG("ngfx", "failed to route __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
+                            SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
                         }
-                    } else {
-                        SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
                     }
                     
                     progressState |= ProcessingState::GeForceWebRouted;
@@ -200,7 +204,7 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	patcher.clearError();
 }
 
-void NGFX::SetAccelProperties(IOService* that)
+void NGFX::nvAccelerator_SetAccelProperties(IOService* that)
 {
     DBGLOG("ngfx", "SetAccelProperties is called");
     
@@ -243,10 +247,10 @@ bool NGFX::AppleGraphicsDevicePolicy_start(IOService *that, IOService *provider)
                 OSString *value = OSDynamicCast(OSString, configMap->getObject(board_id));
                 if (value != nullptr)
                     DBGLOG("ngfx", "Current value for board-id '%s' is %s", board_id, value->getCStringNoCopy());
-                if (!configMap->setObject(board_id, OSString::withCString(config.agdp_config_name)))
+                if (!configMap->setObject(board_id, OSString::withCString("none")))
                     SYSLOG("ngfx", "Configuration for board-id '%s' can't be set, setObject was failed.", board_id);
                 else
-                    DBGLOG("ngfx", "Configuration for board-id '%s' has been set to %s", board_id, config.agdp_config_name);
+                    DBGLOG("ngfx", "Configuration for board-id '%s' has been set to none", board_id);
                 that->setPropertyTable(newProps);
             }
             else

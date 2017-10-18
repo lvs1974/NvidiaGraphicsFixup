@@ -35,15 +35,18 @@ void Configuration::readArguments() {
     if (PE_parse_boot_argn(bootargNoAudio, tmp, sizeof(tmp)))
         noaudiofixes = true;
     
-    if (PE_parse_boot_argn(bootargSetConfig, agdp_config_name, sizeof(agdp_config_name)))
-    {
-        DBGLOG("ngfx", "boot-arg %s specified, value = %s", bootargSetConfig, agdp_config_name);
-    }
+    if (PE_parse_boot_argn(bootargNoVARenderer, tmp, sizeof(tmp)))
+        novarenderer = true;
     
+    if (PE_parse_boot_argn(bootargNoVARenderer, tmp, sizeof(tmp)))
+        novarenderer = true;
+
     if (PE_parse_boot_argn(bootargPatchList, patch_list, sizeof(patch_list)))
     {
         DBGLOG("ngfx", "boot-arg %s specified, value = %s", bootargPatchList, patch_list);
     }
+    else
+        DBGLOG("ngfx", "use default value = %s for patch list", patch_list);
 }
 
 
