@@ -17,10 +17,10 @@ public:
     static const char *bootargOff[];
     static const char *bootargDebug[];
     static const char *bootargBeta[];
-    static constexpr const char *bootargNoAudio    {"-ngfxnoaudio"};    // disable all audio fixes
-    static constexpr const char *bootargNoAudioCon {"-ngfxnoaudiocon"}; // disable adding of @0,connector-type - @5,connector-type
-    static constexpr const char *bootargSetConfig  {"ngfxsetcfg"};      // set config for board-id in ConfigMap of AppleGraphicsDevicePolicy {none, Config1, Config2, Config3}
-    static constexpr const char *bootargPatchList  {"ngfxpatchlist"};   // list of patches: pikera,vit9696 (by default)
+    static constexpr const char *bootargNoAudio      {"-ngfxnoaudio"};        // disable all audio fixes
+    static constexpr const char *bootargNoAudioCon   {"-ngfxnoaudiocon"};     // disable adding of @0,connector-type - @5,connector-type
+    static constexpr const char *bootargNoVARenderer {"-ngfxnovarenderer"};   // disable IOVARenderer injection
+    static constexpr const char *bootargPatchList    {"ngfxpatch"};           // comma separated patches: cfgmap,pikera,vit9696 (by default)
 
     
 public:
@@ -38,16 +38,16 @@ public:
 	 *  disable adding of @0,connector-type - @5,connector-type
 	 */
     bool noaudioconnectors {false};
-    
+
     /**
-     *  name of config used by AppleGraphicsDevicePolicy {none, Config1, Config2, Config3}
+     *  disable IOVARenderer injection
      */
-    char agdp_config_name[15] {};
+    bool novarenderer {false};
     
     /**
      *  patch list (can be separated by comma, space or something like that)
      */
-    char patch_list[64] = {};
+    char patch_list[64] = {"vit9696"};
 
     Configuration() = default;
 };
