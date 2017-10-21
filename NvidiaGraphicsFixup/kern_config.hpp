@@ -20,6 +20,7 @@ public:
     static constexpr const char *bootargNoAudio      {"-ngfxnoaudio"};        // disable all audio fixes
     static constexpr const char *bootargNoAudioCon   {"-ngfxnoaudiocon"};     // disable adding of @0,connector-type - @5,connector-type
     static constexpr const char *bootargNoVARenderer {"-ngfxnovarenderer"};   // disable IOVARenderer injection
+    static constexpr const char *bootargNoLibValFix  {"-ngfxlibvalfix"};      // disable NVWebDriverLibValFix fix
     static constexpr const char *bootargPatchList    {"ngfxpatch"};           // comma separated patches: cfgmap,pikera,vit9696 (by default)
 
     
@@ -43,6 +44,11 @@ public:
      *  disable IOVARenderer injection
      */
     bool novarenderer {false};
+    
+    /**
+     *  disable NVWebDriverLibValFix fix
+     */
+    bool nolibvalfix {false};
     
     /**
      *  patch list (can be separated by comma, space or something like that)

@@ -1,5 +1,7 @@
 NvidiaGraphicsFixup Changelog
 =============================
+#### v1.2.1
+- All patches can be turned off by boot-args (and some of them can be also turned off by using ioreg properties)
 
 #### v1.2.0
 - Lilu 1.2.0 compatibility fixes
