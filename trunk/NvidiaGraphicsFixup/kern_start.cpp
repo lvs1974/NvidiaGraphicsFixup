@@ -40,7 +40,10 @@ void Configuration::readArguments() {
     
     if (PE_parse_boot_argn(bootargNoVARenderer, tmp, sizeof(tmp)))
         novarenderer = true;
-
+    
+    if (PE_parse_boot_argn(bootargNoLibValFix, tmp, sizeof(tmp)))
+        nolibvalfix = true;
+    
     if (PE_parse_boot_argn(bootargPatchList, patch_list, sizeof(patch_list)))
     {
         DBGLOG("ngfx", "boot-arg %s specified, value = %s", bootargPatchList, patch_list);

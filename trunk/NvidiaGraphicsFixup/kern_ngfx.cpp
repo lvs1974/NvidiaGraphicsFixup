@@ -72,27 +72,29 @@ void NGFX::deinit() {
 void NGFX::processKernel(KernelPatcher &patcher) {
     if (!(progressState & ProcessingState::KernelRouted))
     {
-        auto method_address = patcher.solveSymbol(KernelPatcher::KernelID, "_csfg_get_teamid");
-        if (method_address) {
-            DBGLOG("ngfx", "obtained _csfg_get_teamid");
-            csfg_get_teamid = reinterpret_cast<t_csfg_get_teamid>(method_address);
-            
-            method_address = patcher.solveSymbol(KernelPatcher::KernelID, "_csfg_get_platform_binary");
-            if (method_address ) {
-                DBGLOG("ngfx", "obtained _csfg_get_platform_binary");
-                patcher.clearError();
-                org_csfg_get_platform_binary = reinterpret_cast<t_csfg_get_platform_binary>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(csfg_get_platform_binary), true));
-                if (patcher.getError() == KernelPatcher::Error::NoError) {
-                    DBGLOG("ngfx", "routed _csfg_get_platform_binary");
+        if (!config.nolibvalfix) {
+            auto method_address = patcher.solveSymbol(KernelPatcher::KernelID, "_csfg_get_teamid");
+            if (method_address) {
+                DBGLOG("ngfx", "obtained _csfg_get_teamid");
+                csfg_get_teamid = reinterpret_cast<t_csfg_get_teamid>(method_address);
+                
+                method_address = patcher.solveSymbol(KernelPatcher::KernelID, "_csfg_get_platform_binary");
+                if (method_address ) {
+                    DBGLOG("ngfx", "obtained _csfg_get_platform_binary");
+                    patcher.clearError();
+                    org_csfg_get_platform_binary = reinterpret_cast<t_csfg_get_platform_binary>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(csfg_get_platform_binary), true));
+                    if (patcher.getError() == KernelPatcher::Error::NoError) {
+                        DBGLOG("ngfx", "routed _csfg_get_platform_binary");
+                    } else {
+                        SYSLOG("ngfx", "failed to route _csfg_get_platform_binary");
+                    }
                 } else {
-                    SYSLOG("ngfx", "failed to route _csfg_get_platform_binary");
+                    SYSLOG("ngfx", "failed to resolve _csfg_get_platform_binary");
                 }
+                
             } else {
-                SYSLOG("ngfx", "failed to resolve _csfg_get_platform_binary");
+                SYSLOG("ngfx", "failed to resolve _csfg_get_teamid");
             }
-            
-        } else {
-            SYSLOG("ngfx", "failed to resolve _csfg_get_teamid");
         }
         
         progressState |= ProcessingState::KernelRouted;

@@ -14,6 +14,7 @@
 		CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE405ED81E4A080700AA0B3D /* plugin_start.cpp */; };
 		F65909931F7E8A4F005C96D1 /* kern_audio.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F65909911F7E8A4F005C96D1 /* kern_audio.hpp */; };
 		F65909941F7E8A4F005C96D1 /* kern_audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F65909921F7E8A4F005C96D1 /* kern_audio.cpp */; };
+		F69B33D91F9BCECD00F26009 /* FAQ.md in Resources */ = {isa = PBXBuildFile; fileRef = F69B33D81F9BCECC00F26009 /* FAQ.md */; };
 		F6AA9BFB1F927574004D869C /* kern_config.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F6AA9BFA1F927574004D869C /* kern_config.hpp */; };
 /* End PBXBuildFile section */
 
@@ -55,6 +56,7 @@
 		CE405EDA1E4A080F00AA0B3D /* plugin_start.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = plugin_start.hpp; sourceTree = "<group>"; };
 		F65909911F7E8A4F005C96D1 /* kern_audio.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_audio.hpp; sourceTree = "<group>"; };
 		F65909921F7E8A4F005C96D1 /* kern_audio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kern_audio.cpp; sourceTree = "<group>"; };
+		F69B33D81F9BCECC00F26009 /* FAQ.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = FAQ.md; sourceTree = "<group>"; };
 		F6AA9BFA1F927574004D869C /* kern_config.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_config.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -105,6 +107,7 @@
 		1CF01C911C8CF982002DCEA3 /* Docs */ = {
 			isa = PBXGroup;
 			children = (
+				F69B33D81F9BCECC00F26009 /* FAQ.md */,
 				1CF01C901C8CF97F002DCEA3 /* README.md */,
 				1CF01C931C8DF02E002DCEA3 /* LICENSE.txt */,
 				1CF01C921C8CF997002DCEA3 /* Changelog.md */,
@@ -223,6 +226,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F69B33D91F9BCECD00F26009 /* FAQ.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
