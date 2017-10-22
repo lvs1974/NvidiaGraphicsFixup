@@ -13,20 +13,20 @@
 #include "kern_ngfx.hpp"
 
 
-static const char *kextGraphicsDevicePolicy[] { "/System/Library/Extensions/AppleGraphicsControl.kext/Contents/PlugIns/AppleGraphicsDevicePolicy.kext/Contents/MacOS/AppleGraphicsDevicePolicy" };
-static const char *kextGraphicsDevicePolicyId { "com.apple.driver.AppleGraphicsDevicePolicy" };
+static const char *kextAGDPolicy[] { "/System/Library/Extensions/AppleGraphicsControl.kext/Contents/PlugIns/AppleGraphicsDevicePolicy.kext/Contents/MacOS/AppleGraphicsDevicePolicy" };
+static const char *kextAGDPolicyId { "com.apple.driver.AppleGraphicsDevicePolicy" };
 
 static const char *kextGeForce[] { "/System/Library/Extensions/GeForce.kext/Contents/MacOS/GeForce" };
 static const char *kextGeForceId { "com.apple.GeForce" };
 
-static const char *kextGeForceWeb[] { "/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb" };
+static const char *kextGeForceWeb[] { "/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb", "/System/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb" };
 static const char *kextGeForceWebId { "com.nvidia.web.GeForceWeb" };
 
 
 static KernelPatcher::KextInfo kextList[] {
-    { kextGraphicsDevicePolicyId, kextGraphicsDevicePolicy, 1, {true}, {}, KernelPatcher::KextInfo::Unloaded },
-    { kextGeForceId,              kextGeForce,              1, {},     {}, KernelPatcher::KextInfo::Unloaded },
-    { kextGeForceWebId,           kextGeForceWeb,           1, {},     {}, KernelPatcher::KextInfo::Unloaded },
+    { kextAGDPolicyId,      kextAGDPolicy,   arrsize(kextAGDPolicy),  {true}, {}, KernelPatcher::KextInfo::Unloaded },
+    { kextGeForceId,        kextGeForce,     arrsize(kextGeForce),    {},     {}, KernelPatcher::KextInfo::Unloaded },
+    { kextGeForceWebId,     kextGeForceWeb,  arrsize(kextGeForceWeb), {},     {}, KernelPatcher::KextInfo::Unloaded },
 };
 
 static size_t kextListSize {arrsize(kextList)};
@@ -108,9 +108,9 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	if (progressState != ProcessingState::EverythingDone) {
 		for (size_t i = 0; i < kextListSize; i++) {
 			if (kextList[i].loadIndex == index) {
-                if (!(progressState & ProcessingState::GraphicsDevicePolicyPatched) && !strcmp(kextList[i].id, kextGraphicsDevicePolicyId))
+                if (!(progressState & ProcessingState::GraphicsDevicePolicyPatched) && !strcmp(kextList[i].id, kextAGDPolicyId))
                 {
-                    DBGLOG("ngfx", "found %s", kextGraphicsDevicePolicyId);
+                    DBGLOG("ngfx", "found %s", kextAGDPolicyId);
                     
                     const bool patch_vit9696 = (strstr(config.patch_list, "vit9696") != nullptr);
                     const bool patch_pikera  = (strstr(config.patch_list, "pikera")  != nullptr);
