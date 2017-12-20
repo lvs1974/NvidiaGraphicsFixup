@@ -36,7 +36,7 @@ static NGFX *callbackNGFX = nullptr;
 
 
 bool NGFX::init() {
-	if (getKernelVersion() > KernelVersion::Mavericks)
+	if (getKernelVersion() > KernelVersion::Mavericks && getKernelVersion() < KernelVersion::HighSierra)
 	{
 		LiluAPI::Error error = lilu.onPatcherLoad(
 		  [](void *user, KernelPatcher &patcher) {
@@ -52,16 +52,16 @@ bool NGFX::init() {
 		progressState |= ProcessingState::KernelRouted;
 	}
     
-	LiluAPI::Error error = lilu.onKextLoad(kextList, kextListSize,
+    LiluAPI::Error error = lilu.onKextLoad(kextList, kextListSize,
         [](void *user, KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
             callbackNGFX = static_cast<NGFX *>(user);
             callbackNGFX->processKext(patcher, index, address, size);
         }, this);
-	
-	if (error != LiluAPI::Error::NoError) {
-		SYSLOG("ngfx", "failed to register onKextLoad method %d", error);
-		return false;
-	}
+    
+    if (error != LiluAPI::Error::NoError) {
+        SYSLOG("ngfx", "failed to register onKextLoad method %d", error);
+        return false;
+    }
 	
 	return true;
 }
