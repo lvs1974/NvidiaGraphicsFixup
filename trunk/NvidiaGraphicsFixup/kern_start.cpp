@@ -56,7 +56,7 @@ void Configuration::readArguments() {
 PluginConfiguration ADDPR(config) {
 	xStringify(PRODUCT_NAME),
     parseModuleVersion(xStringify(MODULE_VERSION)),
-    LiluAPI::AllowNormal | LiluAPI::AllowInstallerRecovery,
+    LiluAPI::AllowNormal | LiluAPI::AllowInstallerRecovery | LiluAPI::AllowSafeMode,
 	config.bootargOff,
 	arrsize(config.bootargOff),
 	config.bootargDebug,
