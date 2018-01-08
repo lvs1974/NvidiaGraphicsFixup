@@ -1,5 +1,8 @@
 NvidiaGraphicsFixup Changelog
 =============================
+#### v1.2.2
+- Fix up will be loaded in safe mode (required to fix black screen)
+
 #### v1.2.1
 - All patches can be turned off by boot-args (and some of them can be also turned off by using ioreg properties)
 
