@@ -19,16 +19,26 @@ uint32_t NVidiaAudio::getAnalogLayout() {
 	static uint32_t layout = 0;
 	
 	if (!layout) {
-		const char *tree[] {"AppleACPIPCI", "HDEF"};
+		const char *tree[] {"AppleACPIPCI"};
 		auto sect = WIOKit::findEntryByPrefix("/AppleACPIPlatformExpert", "PCI", gIOServicePlane);
 		for (size_t i = 0; sect && i < arrsize(tree); i++) {
 			sect = WIOKit::findEntryByPrefix(sect, tree[i], gIOServicePlane);
 			if (sect && i+1 == arrsize(tree)) {
-				if (WIOKit::getOSDataValue(sect, "layout-id", layout)) {
-					DBGLOG("audio", "found HDEF with layout-id %u", layout);
-					return layout;
-				} else {
-					SYSLOG("audio", "found HDEF with missing layout-id");
+				auto iterator = sect->getChildIterator(gIOServicePlane);
+				if (iterator) {
+					IORegistryEntry *obj = nullptr;
+					while ((obj = OSDynamicCast(IORegistryEntry, iterator->getNextObject())) != nullptr) {
+						uint32_t vendor = 0;
+						// We can technically check the class-code too, but it is not required.
+						// HDEF and HDAU should have the same layout-id if any, so it is irrelevant which we find.
+						if (WIOKit::getOSDataValue(obj, "layout-id", layout) &&
+							WIOKit::getOSDataValue(obj, "vendor-id", vendor) &&
+							vendor == WIOKit::VendorID::Intel) {
+							DBGLOG("audio", "found intel audio %s with layout-id %u", safeString(obj->getName()), layout);
+							return layout;
+						}
+					}
+					iterator->release();
 				}
 			}
 		}
@@ -36,7 +46,7 @@ uint32_t NVidiaAudio::getAnalogLayout() {
 		DBGLOG("audio", "failed to find HDEF layout-id, falling back to 1");
 		layout = 0x1;
 	}
-
+	
 	return layout;
 }
 
