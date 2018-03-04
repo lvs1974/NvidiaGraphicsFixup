@@ -14,19 +14,19 @@
 
 
 static const char *kextAGDPolicy[] { "/System/Library/Extensions/AppleGraphicsControl.kext/Contents/PlugIns/AppleGraphicsDevicePolicy.kext/Contents/MacOS/AppleGraphicsDevicePolicy" };
-static const char *kextAGDPolicyId { "com.apple.driver.AppleGraphicsDevicePolicy" };
-
 static const char *kextGeForce[] { "/System/Library/Extensions/GeForce.kext/Contents/MacOS/GeForce" };
-static const char *kextGeForceId { "com.apple.GeForce" };
-
 static const char *kextGeForceWeb[] { "/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb", "/System/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb" };
-static const char *kextGeForceWebId { "com.nvidia.web.GeForceWeb" };
-
 
 static KernelPatcher::KextInfo kextList[] {
-    { kextAGDPolicyId,      kextAGDPolicy,   arrsize(kextAGDPolicy),  {true}, {}, KernelPatcher::KextInfo::Unloaded },
-    { kextGeForceId,        kextGeForce,     arrsize(kextGeForce),    {},     {}, KernelPatcher::KextInfo::Unloaded },
-    { kextGeForceWebId,     kextGeForceWeb,  arrsize(kextGeForceWeb), {},     {}, KernelPatcher::KextInfo::Unloaded },
+    { "com.apple.driver.AppleGraphicsDevicePolicy",     kextAGDPolicy,   arrsize(kextAGDPolicy),  {true}, {}, KernelPatcher::KextInfo::Unloaded },
+    { "com.apple.GeForce",        						kextGeForce,     arrsize(kextGeForce),    {},     {}, KernelPatcher::KextInfo::Unloaded },
+    { "com.nvidia.web.GeForceWeb",     					kextGeForceWeb,  arrsize(kextGeForceWeb), {},     {}, KernelPatcher::KextInfo::Unloaded },
+};
+
+enum : size_t {
+	KextAGDPolicy,
+	KextGeForce,
+	KextGeForceWeb
 };
 
 static size_t kextListSize {arrsize(kextList)};
@@ -108,9 +108,9 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	if (progressState != ProcessingState::EverythingDone) {
 		for (size_t i = 0; i < kextListSize; i++) {
 			if (kextList[i].loadIndex == index) {
-                if (!(progressState & ProcessingState::GraphicsDevicePolicyPatched) && !strcmp(kextList[i].id, kextAGDPolicyId))
+                if (!(progressState & ProcessingState::GraphicsDevicePolicyPatched) && i == KextAGDPolicy)
                 {
-                    DBGLOG("ngfx", "found %s", kextAGDPolicyId);
+                    DBGLOG("ngfx", "found %s", kextList[i].id);
                     
                     const bool patch_vit9696 = (strstr(config.patch_list, "vit9696") != nullptr);
                     const bool patch_pikera  = (strstr(config.patch_list, "pikera")  != nullptr);
@@ -156,10 +156,10 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                     }
                     progressState |= ProcessingState::GraphicsDevicePolicyPatched;
                 }
-                else if (!(progressState & ProcessingState::GeForceRouted) && !strcmp(kextList[i].id, kextGeForceId))
+                else if (!(progressState & ProcessingState::GeForceRouted) && i == KextGeForce)
                 {
                     if (!config.novarenderer) {
-                        DBGLOG("ngfx", "found %s", kextGeForceId);
+                        DBGLOG("ngfx", "found %s", kextList[i].id);
                         auto method_address = patcher.solveSymbol(index, "__ZN13nvAccelerator18SetAccelPropertiesEv");
                         if (method_address) {
                             DBGLOG("ngfx", "obtained __ZN13nvAccelerator18SetAccelPropertiesEv");
@@ -177,10 +177,10 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                     
                     progressState |= ProcessingState::GeForceRouted;
                 }
-                else if (!(progressState & ProcessingState::GeForceWebRouted) && !strcmp(kextList[i].id, kextGeForceWebId))
+                else if (!(progressState & ProcessingState::GeForceWebRouted) && i == KextGeForceWeb)
                 {
                     if (!config.novarenderer) {
-                        DBGLOG("ngfx", "found %s", kextGeForceWebId);
+                        DBGLOG("ngfx", "found %s", kextList[i].id);
                         auto method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent18SetAccelPropertiesEv");
                         if (method_address) {
                             DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
