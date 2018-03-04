@@ -218,29 +218,27 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
 	} else {
 		DBGLOG("audio", "found existing built-in in gpu");
 	}
-    
-    auto hdaSlotName = hdaService->getProperty("AAPL,slot-name");
+	
     auto gpuSlotName = gpuService->getProperty("AAPL,slot-name");
-    if (!hdaSlotName && !gpuSlotName) {
+    if (!gpuSlotName) {
         static uint32_t slotCounter {0};
         static const char *slotNames[] {
             "Slot-1",
             "Slot-2",
-            "Slot-3"
+            "Slot-3",
+			"Slot-4"
         };
         
         if (slotCounter < arrsize(slotNames)) {
             DBGLOG("audio", "fixing AAPL,slot-name to %s", slotNames[slotCounter]);
             auto slot = OSData::withBytes(slotNames[slotCounter], sizeof("Slot-2"));
-            hdaService->setProperty("AAPL,slot-name", slot);
             gpuService->setProperty("AAPL,slot-name", slot);
             slotCounter++;
         } else {
             SYSLOG("audio", "out of slot name indexes");
         }
     } else {
-        DBGLOG("audio", "existing AAPL,slot-name in gpu (%d) or hdau (%d), assuming complete inject",
-               gpuSlotName != nullptr, hdaSlotName != nullptr);
+        DBGLOG("audio", "existing AAPL,slot-name in gpu (%d), assuming complete inject", gpuSlotName != nullptr);
     }
 	
 	// This may be required for device matching
