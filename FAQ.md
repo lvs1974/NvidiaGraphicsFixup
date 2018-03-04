@@ -47,3 +47,44 @@ Inject `@X,AAPL,boot-display` GFX0 property with the main screen index instead o
 
 - _Does NvidiaGraphicsFixup fix visual issues on wakeup with Pascal GPUs?_  
 Not at the moment. It is also known that HDMI audio may not always work with Pascal GPUs.
+
+- _HDMI audio device only visible after rescan_
+[Jamie](https://sourceforge.net/p/nvidiagraphicsfixup/tickets/9/) found out through linux that nvidia graphics on laptops gtx 1060/1070 specifically,
+that the audio device is disabled by default. [Bug description](https://bugs.freedesktop.org/show_bug.cgi?id=75985).
+He discovered that when the 0x488 magic bit is not set, the gfx device advertises as non-multifunction.
+After the bit is set, the device advertises as multi-function.
+So, after setting the magic bit, removing the device will cause Linux to re-probe it during the next rescan
+taking note at that point that it is a multi-function device
+on linux theres a fix use: setpci -s 01:00.0 0x488.l=0x2000000:0x2000000"
+on mac os he added:
+```
+Device (PEG0)
+{
+	Name (_ADR, 0x00010000)  // _ADR: Address
+	Method (_PRT, 0, NotSerialized)  // _PRT: PCI Routing Table
+	{
+		** Store (One, ^GFX0.NHDA)**
+		If (PICM)
+		{
+		    Return (AR01)
+		}
+
+	    Return (PR01)
+	}
+}
+```
+NHDA is declared here:
+```
+Scope (_SB.PCI0.PEG0)
+{
+	Device (GFX0)
+	{
+		Name (HDAU, Zero)
+		OperationRegion (PCI2, SystemMemory, 0xE0100000, 0x0500)
+		Field (PCI2, DWordAcc, Lock, Preserve)
+		{
+			Offset (0x48B),
+			,   1,
+			NHDA,   1
+		}
+```
