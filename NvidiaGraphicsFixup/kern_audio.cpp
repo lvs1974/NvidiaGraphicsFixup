@@ -62,9 +62,9 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
 		return nullptr;
 	}
 	
-	auto hdaPlaneName = hdaService->getName();
+	auto hdaPlaneName = safeString(hdaService->getName());
 	DBGLOG("audio", "corrects digital audio for hdau at %s with %04X:%04X",
-		   hdaPlaneName ? hdaPlaneName : "(null)", hdaVen, hdaDev);
+		   hdaPlaneName, hdaVen, hdaDev);
 	
 	if (hdaVen != VendorID::NVIDIA) {
 		DBGLOG("audio", "unsupported hdau vendor");
@@ -88,9 +88,7 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
 					else
 						DBGLOG("audio", "found incompatible class-code %04X", classCode);
 				} else {
-					auto name = gpuService->getName();
-					if (!name) name = "null";
-					DBGLOG("audio", "failed to find class-code in %s", name);
+					DBGLOG("audio", "failed to find class-code in %s", safeString(gpuService->getName()));
 				}
 				
 				gpuService = nullptr;
@@ -121,8 +119,7 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
         return nullptr;
     }
     
-	auto gpuPlaneName = gpuService->getName();
-	if (!gpuPlaneName) gpuPlaneName = "(null)";
+	auto gpuPlaneName = safeString(gpuService->getName());
 	DBGLOG("audio", "corrects digital audio for gpu at %s with %04X:%04X", gpuPlaneName, gpuVen, gpuDev);
 	
 	if (gpuVen != VendorID::NVIDIA) {
@@ -131,14 +128,14 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
 	}
     
     // Power management may cause issues for non GFXx
-    if (!gpuPlaneName || strncmp(gpuPlaneName, "GFX", strlen("GFX"))) {
+    if (strncmp(gpuPlaneName, "GFX", strlen("GFX"))) {
         DBGLOG("audio", "fixing gpu plane name to GFX0");
         gpuService->setName("GFX0");
     }
 	
 	// AppleHDAController only recognises HDEF and HDAU
 	
-	if (!hdaPlaneName || strcmp(hdaPlaneName, "HDAU")) {
+	if (strcmp(hdaPlaneName, "HDAU")) {
 		DBGLOG("audio", "fixing audio plane name to HDAU");
 		hdaService->setName("HDAU");
 	}
@@ -211,6 +208,30 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
 	} else {
 		DBGLOG("audio", "found existing built-in in gpu");
 	}
+    
+    auto hdaSlotName = hdaService->getProperty("AAPL,slot-name");
+    auto gpuSlotName = gpuService->getProperty("AAPL,slot-name");
+    if (!hdaSlotName && !gpuSlotName) {
+        static uint32_t slotCounter {0};
+        static const char *slotNames[] {
+            "Slot-1",
+            "Slot-2",
+            "Slot-3"
+        };
+        
+        if (slotCounter < arrsize(slotNames)) {
+            DBGLOG("audio", "fixing AAPL,slot-name to %s", slotNames[slotCounter]);
+            auto slot = OSData::withBytes(slotNames[slotCounter], sizeof("Slot-2"));
+            hdaService->setProperty("AAPL,slot-name", slot);
+            gpuService->setProperty("AAPL,slot-name", slot);
+            slotCounter++;
+        } else {
+            SYSLOG("audio", "out of slot name indexes");
+        }
+    } else {
+        DBGLOG("audio", "existing AAPL,slot-name in gpu (%d) or hdau (%d), assuming complete inject",
+               gpuSlotName != nullptr, hdaSlotName != nullptr);
+    }
 	
 	// This may be required for device matching
 	
@@ -218,7 +239,7 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
 	if (compatibleProp) {
 		uint32_t compatibleSz = compatibleProp->getLength();
 		auto compatibleStr = static_cast<const char *>(compatibleProp->getBytesNoCopy());
-		DBGLOG("audio", "compatible property starts with %s and is %u bytes", compatibleStr ? compatibleStr : "(null)", compatibleSz);
+		DBGLOG("audio", "compatible property starts with %s and is %u bytes", safeString(compatibleStr), compatibleSz);
 		
 		if (compatibleStr) {
 			for (uint32_t i = 0; i < compatibleSz; i++) {
