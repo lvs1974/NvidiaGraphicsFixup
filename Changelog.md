@@ -1,5 +1,9 @@
 NvidiaGraphicsFixup Changelog
 =============================
+#### v1.2.3
+- Add AAPL,slot-name injection
+- Fix HDEF `layout-id` detection
+
 #### v1.2.2
 - Fix up will be loaded in safe mode (required to fix black screen)
 
