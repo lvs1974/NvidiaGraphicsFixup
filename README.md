@@ -14,6 +14,19 @@ An open source kernel extension providing patches for NVidia GPUs.
 - Injects IOVARendererID into GPU properties (required for Shiki-based solution for non-freezing Intel and/or any discrete GPU)
 - Allows to use ports HDMI, DP, Digital DVI with audio (Injects @0connector-type - @5connector-type properties into GPU)
 
+#### Boot-args
+- "-ngfxoff" disables kext loading
+- "-ngfxdbg" turns on debugging output
+- "-ngfxbeta" enables loading under unsupported osx version
+- "-ngfxnoaudio" disables all audio fixes
+- "-ngfxnoaudiocon" disables audio connectors injection
+- "-ngfxnovarenderer" disables IOVARenderer injection
+- "-ngfxlibvalfix" disables NVWebDriverLibValFix fix
+- "ngfxpatch=cfgmap" enforcing `none` into ConfigMap dictionary for system board-id
+- "ngfxpatch=vit9696" disables check for board-id , enabled by default
+- "ngfxpatch=pikera" replaces `board-id` with `board-ix`
+
+
 #### Credits
 - [Apple](https://www.apple.com) for macOS  
 - [vit9696](https://github.com/vit9696) for [Lilu.kext](https://github.com/vit9696/Lilu) & for zero-length string comparison patch (AppleGraphicsDevicePolicy.kext )
@@ -22,3 +35,6 @@ An open source kernel extension providing patches for NVidia GPUs.
 - [igork](https://applelife.ru/members/igork.564) for adding properties IOVARendererID & IOVARendererSubID in nvAcceleratorParent::SetAccelProperties
 - [mologie](https://github.com/mologie/NVWebDriverLibValFix) for creating NVWebDriverLibValFix.kext which forces macOS to recognize NVIDIA's web drivers as platform binaries
 - [lvs1974](https://applelife.ru/members/lvs1974.53809) for writing the software and maintaining it
+
+
+[FAQ](https://github.com/lvs1974/NvidiaGraphicsFixup/blob/master/FAQ.md)
