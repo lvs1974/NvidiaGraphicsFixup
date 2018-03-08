@@ -15,16 +15,16 @@ An open source kernel extension providing patches for NVidia GPUs.
 - Allows to use ports HDMI, DP, Digital DVI with audio (Injects @0connector-type - @5connector-type properties into GPU)
 
 #### Boot-args
-- "-ngfxoff" disables kext loading
-- "-ngfxdbg" turns on debugging output
-- "-ngfxbeta" enables loading under unsupported osx version
-- "-ngfxnoaudio" disables all audio fixes
-- "-ngfxnoaudiocon" disables audio connectors injection
-- "-ngfxnovarenderer" disables IOVARenderer injection
-- "-ngfxlibvalfix" disables NVWebDriverLibValFix fix
-- "ngfxpatch=cfgmap" enforcing `none` into ConfigMap dictionary for system board-id
-- "ngfxpatch=vit9696" disables check for board-id , enabled by default
-- "ngfxpatch=pikera" replaces `board-id` with `board-ix`
+- `-ngfxoff` disables kext loading
+- `-ngfxdbg` turns on debugging output
+- `-ngfxbeta` enables loading under unsupported osx version
+- `-ngfxnoaudio` disables all audio fixes
+- `-ngfxnoaudiocon` disables audio connectors injection
+- `-ngfxnovarenderer` disables IOVARenderer injection
+- `-ngfxlibvalfix` disables NVWebDriverLibValFix fix
+- `ngfxpatch=cfgmap` enforcing `none` into ConfigMap dictionary for system board-id
+- `ngfxpatch=vit9696` disables check for board-id , enabled by default
+- `ngfxpatch=pikera` replaces `board-id` with `board-ix`
 
 
 #### Credits
