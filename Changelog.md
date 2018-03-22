@@ -1,5 +1,14 @@
 NvidiaGraphicsFixup Changelog
 =============================
+#### v1.2.4
+- Added `ngfxgl=1` boot argument (and `disable-metal` property) to disable Metal support
+
+In order to boot with `ngfxgl=1` on 10.13.x you may need to set the defaults:
+```
+sudo defaults write /Library/Preferences/com.apple.CoreDisplay useMetal -boolean no
+sudo defaults write /Library/Preferences/com.apple.CoreDisplay useIOP -boolean no
+```
+
 #### v1.2.3
 - Add AAPL,slot-name injection
 - Fix HDEF `layout-id` detection
