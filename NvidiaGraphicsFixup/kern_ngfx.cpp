@@ -228,6 +228,17 @@ void NGFX::nvAccelerator_SetAccelProperties(IOService* that)
             DBGLOG("ngfx", "set IOVARendererSubID to value 03 00 00 00");
         }
     }
+
+	auto gfx = that->getParentEntry(gIOServicePlane);
+	int gl = gfx && gfx->getProperty("disable-metal");
+	PE_parse_boot_argn("ngfxgl", &gl, sizeof(gl));
+
+	if (gl) {
+		DBGLOG("ngfx", "disabling metal support");
+		that->removeProperty("MetalPluginClassName");
+		that->removeProperty("MetalPluginName");
+		that->removeProperty("MetalStatisticsName");
+	}
 }
 
 bool NGFX::AppleGraphicsDevicePolicy_start(IOService *that, IOService *provider)
