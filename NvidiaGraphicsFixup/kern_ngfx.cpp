@@ -9,24 +9,30 @@
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_iokit.hpp>
 
+#include <sys/types.h>
+#include <sys/sysctl.h>
+
 #include "kern_config.hpp"
 #include "kern_ngfx.hpp"
 
 
-static const char *kextAGDPolicy[] { "/System/Library/Extensions/AppleGraphicsControl.kext/Contents/PlugIns/AppleGraphicsDevicePolicy.kext/Contents/MacOS/AppleGraphicsDevicePolicy" };
-static const char *kextGeForce[] { "/System/Library/Extensions/GeForce.kext/Contents/MacOS/GeForce" };
-static const char *kextGeForceWeb[] { "/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb", "/System/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb" };
+static const char *kextAGDPolicy[] 		{ "/System/Library/Extensions/AppleGraphicsControl.kext/Contents/PlugIns/AppleGraphicsDevicePolicy.kext/Contents/MacOS/AppleGraphicsDevicePolicy" };
+static const char *kextGeForce[] 		{ "/System/Library/Extensions/GeForce.kext/Contents/MacOS/GeForce" };
+static const char *kextGeForceWeb[] 	{ "/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb", "/System/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb" };
+static const char *kextNVDAStartupWeb[] { "/Library/Extensions/NVDAStartupWeb.kext/Contents/MacOS/NVDAStartupWeb.kext" };
 
 static KernelPatcher::KextInfo kextList[] {
-    { "com.apple.driver.AppleGraphicsDevicePolicy",     kextAGDPolicy,   arrsize(kextAGDPolicy),  {true}, {}, KernelPatcher::KextInfo::Unloaded },
-    { "com.apple.GeForce",        						kextGeForce,     arrsize(kextGeForce),    {},     {}, KernelPatcher::KextInfo::Unloaded },
-    { "com.nvidia.web.GeForceWeb",     					kextGeForceWeb,  arrsize(kextGeForceWeb), {},     {}, KernelPatcher::KextInfo::Unloaded },
+    { "com.apple.driver.AppleGraphicsDevicePolicy",     kextAGDPolicy,   	arrsize(kextAGDPolicy),  	 {true}, {}, KernelPatcher::KextInfo::Unloaded },
+    { "com.apple.GeForce",        						kextGeForce,     	arrsize(kextGeForce),    	 {},     {}, KernelPatcher::KextInfo::Unloaded },
+    { "com.nvidia.web.GeForceWeb",     					kextGeForceWeb,  	arrsize(kextGeForceWeb), 	 {},     {}, KernelPatcher::KextInfo::Unloaded },
+	{ "com.nvidia.NVDAStartupWeb",						kextNVDAStartupWeb, arrsize(kextNVDAStartupWeb), {},	 {}, KernelPatcher::KextInfo::Unloaded }
 };
 
 enum : size_t {
 	KextAGDPolicy,
 	KextGeForce,
-	KextGeForceWeb
+	KextGeForceWeb,
+	KextNVDAStartupWeb
 };
 
 static size_t kextListSize {arrsize(kextList)};
@@ -198,6 +204,27 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                     
                     progressState |= ProcessingState::GeForceWebRouted;
                 }
+				else if (!(progressState & ProcessingState::NVDAStartupWebRouted) && i == KextNVDAStartupWeb)
+				{
+					if (config.force_compatibility) {
+						DBGLOG("ngfx", "found %s", kextList[i].id);
+						auto method_address = patcher.solveSymbol(index, "__ZN14NVDAStartupWeb5probeEP9IOServicePi");
+						if (method_address) {
+							DBGLOG("ngfx", "obtained __ZN14NVDAStartupWeb5probeEP9IOServicePi");
+							patcher.clearError();
+							orgNvdastartupProbe = reinterpret_cast<t_nvdastartup_probe>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(NVDAStartupWeb_probe), true));
+							if (patcher.getError() == KernelPatcher::Error::NoError) {
+								DBGLOG("ngfx", "routed __ZN14NVDAStartupWeb5probeEP9IOServicePi");
+							} else {
+								SYSLOG("ngfx", "failed to route __ZN14NVDAStartupWeb5probeEP9IOServicePi");
+							}
+						} else {
+							SYSLOG("ngfx", "failed to resolve __ZN14NVDAStartupWeb5probeEP9IOServicePi");
+						}
+					}
+					
+					progressState |= ProcessingState::NVDAStartupWebRouted;
+				}
 			}
 		}
 	}
@@ -278,6 +305,24 @@ bool NGFX::AppleGraphicsDevicePolicy_start(IOService *that, IOService *provider)
     }
     
     return result;
+}
+
+IOService* NGFX::NVDAStartupWeb_probe(IOService *that, IOService * provider, SInt32 *score)
+{
+	IOService* result = nullptr;
+	
+	DBGLOG("ngfx", "NVDAStartupWeb::probe is called");
+	if (callbackNGFX && callbackNGFX->orgNvdastartupProbe)
+	{
+		char osversion[40] = {};
+		size_t size = sizeof(osversion);
+		sysctlbyname("kern.osversion", osversion, &size, NULL, 0);
+		that->setProperty("NVDARequiredOS", osversion);
+		
+		result = callbackNGFX->orgNvdastartupProbe(that, provider, score);
+	}
+	
+	return result;
 }
 
 int NGFX::csfg_get_platform_binary(void *fg)

@@ -59,7 +59,11 @@ private:
      *  csfg_get_teamid callback type
      */
     using t_csfg_get_teamid = const char* (*) (void *fg);
-    
+	
+	/**
+	 *  NVDAStartupWeb::probe callback type
+	 */
+	using t_nvdastartup_probe = IOService* (*) (IOService *that, IOService * provider, SInt32 *score);
     
     
     /**
@@ -68,6 +72,8 @@ private:
     static void nvAccelerator_SetAccelProperties(IOService* that);
 
     static bool AppleGraphicsDevicePolicy_start(IOService *that, IOService *provider);
+	
+	static IOService* NVDAStartupWeb_probe(IOService *that, IOService * provider, SInt32 *score);
     
     static int csfg_get_platform_binary(void *fg);
 
@@ -82,6 +88,8 @@ private:
     t_csfg_get_platform_binary  org_csfg_get_platform_binary {nullptr};
     
     t_csfg_get_teamid           csfg_get_teamid {nullptr};
+	
+	t_nvdastartup_probe			orgNvdastartupProbe {nullptr};
     
     
     /**
@@ -103,8 +111,9 @@ private:
 			GraphicsDevicePolicyPatched = 2,
             GeForceRouted = 4,
             GeForceWebRouted = 8,
-            KernelRouted = 16,
-			EverythingDone = GraphicsDevicePolicyPatched | GeForceRouted | GeForceWebRouted | KernelRouted,
+			NVDAStartupWebRouted = 16,
+            KernelRouted = 32,
+			EverythingDone = GraphicsDevicePolicyPatched | GeForceRouted | GeForceWebRouted | NVDAStartupWebRouted | KernelRouted,
 		};
 	};
     int progressState {ProcessingState::NothingReady};
