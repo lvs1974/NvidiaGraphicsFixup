@@ -206,21 +206,19 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                 }
 				else if (!(progressState & ProcessingState::NVDAStartupWebRouted) && i == KextNVDAStartupWeb)
 				{
-					if (config.force_compatibility) {
-						DBGLOG("ngfx", "found %s", kextList[i].id);
-						auto method_address = patcher.solveSymbol(index, "__ZN14NVDAStartupWeb5probeEP9IOServicePi");
-						if (method_address) {
-							DBGLOG("ngfx", "obtained __ZN14NVDAStartupWeb5probeEP9IOServicePi");
-							patcher.clearError();
-							orgNvdastartupProbe = reinterpret_cast<t_nvdastartup_probe>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(NVDAStartupWeb_probe), true));
-							if (patcher.getError() == KernelPatcher::Error::NoError) {
-								DBGLOG("ngfx", "routed __ZN14NVDAStartupWeb5probeEP9IOServicePi");
-							} else {
-								SYSLOG("ngfx", "failed to route __ZN14NVDAStartupWeb5probeEP9IOServicePi");
-							}
+					DBGLOG("ngfx", "found %s", kextList[i].id);
+					auto method_address = patcher.solveSymbol(index, "__ZN14NVDAStartupWeb5probeEP9IOServicePi");
+					if (method_address) {
+						DBGLOG("ngfx", "obtained __ZN14NVDAStartupWeb5probeEP9IOServicePi");
+						patcher.clearError();
+						orgNvdastartupProbe = reinterpret_cast<t_nvdastartup_probe>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(NVDAStartupWeb_probe), true));
+						if (patcher.getError() == KernelPatcher::Error::NoError) {
+							DBGLOG("ngfx", "routed __ZN14NVDAStartupWeb5probeEP9IOServicePi");
 						} else {
-							SYSLOG("ngfx", "failed to resolve __ZN14NVDAStartupWeb5probeEP9IOServicePi");
+							SYSLOG("ngfx", "failed to route __ZN14NVDAStartupWeb5probeEP9IOServicePi");
 						}
+					} else {
+						SYSLOG("ngfx", "failed to resolve __ZN14NVDAStartupWeb5probeEP9IOServicePi");
 					}
 					
 					progressState |= ProcessingState::NVDAStartupWebRouted;
@@ -314,11 +312,18 @@ IOService* NGFX::NVDAStartupWeb_probe(IOService *that, IOService * provider, SIn
 	DBGLOG("ngfx", "NVDAStartupWeb::probe is called");
 	if (callbackNGFX && callbackNGFX->orgNvdastartupProbe)
 	{
-		char osversion[40] = {};
-		size_t size = sizeof(osversion);
-		sysctlbyname("kern.osversion", osversion, &size, NULL, 0);
-		that->setProperty("NVDARequiredOS", osversion);
-		
+		int comp = config.force_compatibility;
+		if (comp < 0)
+			comp = provider && provider->getProperty("force-compat");
+
+		if (comp > 0) {
+			char osversion[40] = {};
+			size_t size = sizeof(osversion);
+			sysctlbyname("kern.osversion", osversion, &size, NULL, 0);
+			DBGLOG("ngfx", "ignoring driver compatibility requirements with %s OS", osversion);
+			that->setProperty("NVDARequiredOS", osversion);
+		}
+
 		result = callbackNGFX->orgNvdastartupProbe(that, provider, score);
 	}
 	

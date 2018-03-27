@@ -44,8 +44,8 @@ void Configuration::readArguments() {
     if (PE_parse_boot_argn(bootargNoLibValFix, tmp, sizeof(tmp)))
         nolibvalfix = true;
 	
-	if (PE_parse_boot_argn(bootargCompat, tmp, sizeof(tmp)))
-		force_compatibility = true;
+    if (PE_parse_boot_argn(bootargCompat, &force_compatibility, sizeof(force_compatibility)))
+        DBGLOG("ngfx", "overriding web driver compatibility to %d", force_compatibility);
 	
     if (PE_parse_boot_argn(bootargPatchList, patch_list, sizeof(patch_list)))
     {
