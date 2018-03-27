@@ -2,7 +2,7 @@ NvidiaGraphicsFixup Changelog
 =============================
 #### v1.2.4
 - Added `ngfxgl=1` boot argument (and `disable-metal` property) to disable Metal support
-- Added `-ngfxcompat` boot argument to ignore compatibility check in NVDAStartupWeb
+- Added `ngfxcompat=1` boot argument (and `force-compat` property) to ignore compatibility check in NVDAStartupWeb
 
 In order to boot with `ngfxgl=1` on 10.13.x you may need to set the defaults:
 ```

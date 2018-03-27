@@ -22,7 +22,7 @@ public:
     static constexpr const char *bootargNoVARenderer {"-ngfxnovarenderer"};   // disable IOVARenderer injection
     static constexpr const char *bootargNoLibValFix  {"-ngfxlibvalfix"};      // disable NVWebDriverLibValFix fix
     static constexpr const char *bootargPatchList    {"ngfxpatch"};           // comma separated patches: cfgmap,pikera,vit9696 (by default)
-	static constexpr const char *bootargCompat       {"-ngfxcompat"}; 	      // force compatibility
+    static constexpr const char *bootargCompat       {"ngfxcompat"};          // force compatibility
 
     
 public:
@@ -59,7 +59,7 @@ public:
 	/**
 	 *  ignore compatibility check in driver
 	 */
-	bool force_compatibility {false};
+	int force_compatibility {-1};
 
     Configuration() = default;
 };
