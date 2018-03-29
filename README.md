@@ -25,6 +25,8 @@ An open source kernel extension providing patches for NVidia GPUs.
 - `ngfxpatch=cfgmap` enforcing `none` into ConfigMap dictionary for system board-id
 - `ngfxpatch=vit9696` disables check for board-id , enabled by default
 - `ngfxpatch=pikera` replaces `board-id` with `board-ix`
+- `ngfxgl=1` boot argument (and `disable-metal` property) to disable Metal support
+- `ngfxcompat=1` boot argument (and `force-compat` property) to ignore compatibility check in NVDAStartupWeb
 
 
 #### Credits
