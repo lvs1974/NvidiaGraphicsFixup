@@ -73,8 +73,3 @@ PluginConfiguration ADDPR(config) {
 		ngfx.init();
 	}
 };
-
-
-
-
-
