@@ -16,10 +16,20 @@
 #include "kern_ngfx.hpp"
 
 
-static const char *kextAGDPolicy[] 		{ "/System/Library/Extensions/AppleGraphicsControl.kext/Contents/PlugIns/AppleGraphicsDevicePolicy.kext/Contents/MacOS/AppleGraphicsDevicePolicy" };
-static const char *kextGeForce[] 		{ "/System/Library/Extensions/GeForce.kext/Contents/MacOS/GeForce" };
-static const char *kextGeForceWeb[] 	{ "/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb", "/System/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb" };
-static const char *kextNVDAStartupWeb[] { "/Library/Extensions/NVDAStartupWeb.kext/Contents/MacOS/NVDAStartupWeb.kext" };
+static const char *kextAGDPolicy[] {
+	"/System/Library/Extensions/AppleGraphicsControl.kext/Contents/PlugIns/AppleGraphicsDevicePolicy.kext/Contents/MacOS/AppleGraphicsDevicePolicy"
+};
+static const char *kextGeForce[] {
+	"/System/Library/Extensions/GeForce.kext/Contents/MacOS/GeForce"
+};
+static const char *kextGeForceWeb[] {
+	"/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb",
+	"/System/Library/Extensions/GeForceWeb.kext/Contents/MacOS/GeForceWeb"
+};
+static const char *kextNVDAStartupWeb[] {
+	"/Library/Extensions/NVDAStartupWeb.kext/Contents/MacOS/NVDAStartupWeb",
+	"/System/Library/Extensions/NVDAStartupWeb.kext/Contents/MacOS/NVDAStartupWeb"
+};
 
 static KernelPatcher::KextInfo kextList[] {
     { "com.apple.driver.AppleGraphicsDevicePolicy",     kextAGDPolicy,   	arrsize(kextAGDPolicy),  	 {true}, {}, KernelPatcher::KextInfo::Unloaded },
@@ -148,7 +158,7 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                     
                     if (patch_cfgmap)
                     {
-                        auto method_address = patcher.solveSymbol(index, "__ZN25AppleGraphicsDevicePolicy5startEP9IOService");
+                        auto method_address = patcher.solveSymbol(index, "__ZN25AppleGraphicsDevicePolicy5startEP9IOService", address, size);
                         if (method_address) {
                             DBGLOG("ngfx", "obtained __ZN25AppleGraphicsDevicePolicy5startEP9IOService");
                             patcher.clearError();
@@ -168,7 +178,7 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                 {
                     if (!config.novarenderer) {
                         DBGLOG("ngfx", "found %s", kextList[i].id);
-                        auto method_address = patcher.solveSymbol(index, "__ZN13nvAccelerator18SetAccelPropertiesEv");
+                        auto method_address = patcher.solveSymbol(index, "__ZN13nvAccelerator18SetAccelPropertiesEv", address, size);
                         if (method_address) {
                             DBGLOG("ngfx", "obtained __ZN13nvAccelerator18SetAccelPropertiesEv");
                             patcher.clearError();
@@ -191,7 +201,7 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                 {
                     if (!config.novarenderer) {
                         DBGLOG("ngfx", "found %s", kextList[i].id);
-                        auto method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent18SetAccelPropertiesEv");
+                        auto method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent18SetAccelPropertiesEv", address, size);
                         if (method_address) {
                             DBGLOG("ngfx", "obtained __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
                             patcher.clearError();
@@ -213,7 +223,7 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				else if (!(progressState & ProcessingState::NVDAStartupWebRouted) && i == KextNVDAStartupWeb)
 				{
 					DBGLOG("ngfx", "found %s", kextList[i].id);
-					auto method_address = patcher.solveSymbol(index, "__ZN14NVDAStartupWeb5probeEP9IOServicePi");
+					auto method_address = patcher.solveSymbol(index, "__ZN14NVDAStartupWeb5probeEP9IOServicePi", address, size);
 					if (method_address) {
 						DBGLOG("ngfx", "obtained __ZN14NVDAStartupWeb5probeEP9IOServicePi");
 						patcher.clearError();
@@ -252,7 +262,7 @@ void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach
 		return;
 	}
 
-	orgFifoPrepare = reinterpret_cast<t_fifo_prepare>(patcher.solveSymbol(index, "__ZN15nvGpFifoChannel7PrepareEv"));
+	orgFifoPrepare = patcher.solveSymbol<t_fifo_prepare>(index, "__ZN15nvGpFifoChannel7PrepareEv", address, size);
 	if (orgFifoPrepare) {
 		DBGLOG("ngfx", "obtained __ZN15nvGpFifoChannel7PrepareEv");
 		patcher.clearError();
@@ -260,7 +270,7 @@ void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach
 		DBGLOG("ngfx", "failed to resolve __ZN15nvGpFifoChannel7PrepareEv");
 	}
 
-	orgFifoComplete = reinterpret_cast<t_fifo_complete>(patcher.solveSymbol(index, "__ZN15nvGpFifoChannel8CompleteEv"));
+	orgFifoComplete = patcher.solveSymbol<t_fifo_complete>(index, "__ZN15nvGpFifoChannel8CompleteEv", address, size);
 	if (orgFifoComplete) {
 		DBGLOG("ngfx", "obtained __ZN15nvGpFifoChannel8CompleteEv");
 		patcher.clearError();
@@ -272,7 +282,7 @@ void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach
 		mach_vm_address_t presubmitBase = 0;
 
 		// Firstly we need to recover the PreSubmit function, which was badly broken.
-		auto presubmit = patcher.solveSymbol(index, "__ZN21nvVirtualAddressSpace9PreSubmitEv");
+		auto presubmit = patcher.solveSymbol(index, "__ZN21nvVirtualAddressSpace9PreSubmitEv", address, size);
 		if (presubmit) {
 			DBGLOG("ngfx", "obtained __ZN21nvVirtualAddressSpace9PreSubmitEv");
 			patcher.clearError();
@@ -344,7 +354,7 @@ void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach
 			};
 
 			for (auto &sym : symbols) {
-				auto addr = patcher.solveSymbol(index, sym);
+				auto addr = patcher.solveSymbol(index, sym, address, size);
 				if (addr) {
 					DBGLOG("ngfx", "obtained %s", sym);
 					patcher.clearError();
