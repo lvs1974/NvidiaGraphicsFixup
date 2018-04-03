@@ -12,6 +12,7 @@
 		1C9CB7B11C789FF500231E41 /* kern_ngfx.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 1C9CB7AF1C789FF500231E41 /* kern_ngfx.hpp */; };
 		CE405EC91E49DD9700AA0B3D /* libkmod.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CE405EC71E49DD7100AA0B3D /* libkmod.a */; };
 		CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE405ED81E4A080700AA0B3D /* plugin_start.cpp */; };
+		CEA2DF342072B8D5009BD0E2 /* kern_ngfx_asm.S in Sources */ = {isa = PBXBuildFile; fileRef = CEA2DF332072B8D5009BD0E2 /* kern_ngfx_asm.S */; };
 		F65909931F7E8A4F005C96D1 /* kern_audio.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F65909911F7E8A4F005C96D1 /* kern_audio.hpp */; };
 		F65909941F7E8A4F005C96D1 /* kern_audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F65909921F7E8A4F005C96D1 /* kern_audio.cpp */; };
 		F69B33D91F9BCECD00F26009 /* FAQ.md in Resources */ = {isa = PBXBuildFile; fileRef = F69B33D81F9BCECC00F26009 /* FAQ.md */; };
@@ -54,6 +55,7 @@
 		CE405ED21E49F9FC00AA0B3D /* kern_api.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_api.hpp; sourceTree = "<group>"; };
 		CE405ED81E4A080700AA0B3D /* plugin_start.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = plugin_start.cpp; sourceTree = "<group>"; };
 		CE405EDA1E4A080F00AA0B3D /* plugin_start.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = plugin_start.hpp; sourceTree = "<group>"; };
+		CEA2DF332072B8D5009BD0E2 /* kern_ngfx_asm.S */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; path = kern_ngfx_asm.S; sourceTree = "<group>"; };
 		F65909911F7E8A4F005C96D1 /* kern_audio.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_audio.hpp; sourceTree = "<group>"; };
 		F65909921F7E8A4F005C96D1 /* kern_audio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kern_audio.cpp; sourceTree = "<group>"; };
 		F69B33D81F9BCECC00F26009 /* FAQ.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = FAQ.md; sourceTree = "<group>"; };
@@ -98,6 +100,7 @@
 				F65909911F7E8A4F005C96D1 /* kern_audio.hpp */,
 				1C748C2C1C21952C0024EED2 /* kern_start.cpp */,
 				1C9CB7AE1C789FF500231E41 /* kern_ngfx.cpp */,
+				CEA2DF332072B8D5009BD0E2 /* kern_ngfx_asm.S */,
 				1C9CB7AF1C789FF500231E41 /* kern_ngfx.hpp */,
 				1C748C2E1C21952C0024EED2 /* Info.plist */,
 			);
@@ -197,7 +200,7 @@
 		1C748C1E1C21952C0024EED2 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0900;
+				LastUpgradeCheck = 0930;
 				ORGANIZATIONNAME = vit9696;
 				TargetAttributes = {
 					1C748C261C21952C0024EED2 = {
@@ -256,6 +259,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F65909941F7E8A4F005C96D1 /* kern_audio.cpp in Sources */,
+				CEA2DF342072B8D5009BD0E2 /* kern_ngfx_asm.S in Sources */,
 				1C9CB7B01C789FF500231E41 /* kern_ngfx.cpp in Sources */,
 				CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */,
 				1C748C2D1C21952C0024EED2 /* kern_start.cpp in Sources */,
@@ -374,7 +378,7 @@
 				MODULE_NAME = as.lvs1974.NvidiaGraphicsFixup;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.2.4;
+				MODULE_VERSION = 1.2.5;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -418,7 +422,7 @@
 				MODULE_NAME = as.lvs1974.NvidiaGraphicsFixup;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.2.4;
+				MODULE_VERSION = 1.2.5;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",

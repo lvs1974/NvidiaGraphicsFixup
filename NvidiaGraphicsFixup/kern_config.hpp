@@ -23,6 +23,8 @@ public:
     static constexpr const char *bootargNoLibValFix  {"-ngfxlibvalfix"};      // disable NVWebDriverLibValFix fix
     static constexpr const char *bootargPatchList    {"ngfxpatch"};           // comma separated patches: cfgmap,pikera,vit9696 (by default)
     static constexpr const char *bootargCompat       {"ngfxcompat"};          // force compatibility
+	static constexpr const char *bootargForceOpenGL  {"ngfxgl"};              // force the use of legacy OpenGL APIs
+	static constexpr const char *bootargLegacySubmit {"ngfxsubmit"};          // force legacy-style fifo submit
 
     
 public:

@@ -40,6 +40,8 @@ static size_t kextListSize {arrsize(kextList)};
 // Only used in apple-driven callbacks
 static NGFX *callbackNGFX = nullptr;
 
+bool (*orgVaddrPresubmitOfficial)(void *addr) = nullptr;
+bool (*orgVaddrPresubmitWeb)(void *addr) = nullptr;
 
 bool NGFX::init() {
 	if (getKernelVersion() > KernelVersion::Mavericks && getKernelVersion() < KernelVersion::HighSierra)
@@ -180,7 +182,9 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                             SYSLOG("ngfx", "failed to resolve __ZN13nvAccelerator18SetAccelPropertiesEv");
                         }
                     }
-                    
+
+					restoreLegacyOptimisations(patcher, index, address, size, false);
+
                     progressState |= ProcessingState::GeForceRouted;
                 }
                 else if (!(progressState & ProcessingState::GeForceWebRouted) && i == KextGeForceWeb)
@@ -201,7 +205,9 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
                             SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
                         }
                     }
-                    
+
+					restoreLegacyOptimisations(patcher, index, address, size, true);
+
                     progressState |= ProcessingState::GeForceWebRouted;
                 }
 				else if (!(progressState & ProcessingState::NVDAStartupWebRouted) && i == KextNVDAStartupWeb)
@@ -231,6 +237,144 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	patcher.clearError();
 }
 
+void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size, bool web) {
+	if (getKernelVersion() < KernelVersion::HighSierra) {
+		DBGLOG("ngfx", "not bothering vaddr presubmit performance fix on pre-10.13");
+		return;
+	}
+
+	int fifoSubmit = 1;
+	PE_parse_boot_argn(config.bootargLegacySubmit, &fifoSubmit, sizeof(fifoSubmit));
+	DBGLOG("ngfx", "read legacy fifo submit as %d", fifoSubmit);
+
+	if (!fifoSubmit) {
+		DBGLOG("ngfx", "vaddr presubmit performance fix was disabled manually");
+		return;
+	}
+
+	orgFifoPrepare = reinterpret_cast<t_fifo_prepare>(patcher.solveSymbol(index, "__ZN15nvGpFifoChannel7PrepareEv"));
+	if (orgFifoPrepare) {
+		DBGLOG("ngfx", "obtained __ZN15nvGpFifoChannel7PrepareEv");
+		patcher.clearError();
+	} else {
+		DBGLOG("ngfx", "failed to resolve __ZN15nvGpFifoChannel7PrepareEv");
+	}
+
+	orgFifoComplete = reinterpret_cast<t_fifo_complete>(patcher.solveSymbol(index, "__ZN15nvGpFifoChannel8CompleteEv"));
+	if (orgFifoComplete) {
+		DBGLOG("ngfx", "obtained __ZN15nvGpFifoChannel8CompleteEv");
+		patcher.clearError();
+	} else {
+		DBGLOG("ngfx", "failed to resolve __ZN15nvGpFifoChannel8CompleteEv");
+	}
+
+	if (orgFifoPrepare && orgFifoComplete) {
+		mach_vm_address_t presubmitBase = 0;
+
+		// Firstly we need to recover the PreSubmit function, which was badly broken.
+		auto presubmit = patcher.solveSymbol(index, "__ZN21nvVirtualAddressSpace9PreSubmitEv");
+		if (presubmit) {
+			DBGLOG("ngfx", "obtained __ZN21nvVirtualAddressSpace9PreSubmitEv");
+			patcher.clearError();
+			// Here we patch the prologue to signal that this call to PreSubmit is not coming from patched areas.
+			// The original prologue is executed in orgSubmitHandler, make sure you update it there!!!
+			uint8_t prologue[] {0x55, 0x48, 0x89, 0xE5};
+			uint8_t uprologue[] {0xB0, 0x00, 0x90, 0x90};
+			if (!memcmp(reinterpret_cast<void *>(presubmit), prologue, sizeof(prologue))) {
+				patcher.routeBlock(presubmit, uprologue, sizeof(uprologue));
+				if (patcher.getError() == KernelPatcher::Error::NoError)
+					(web ? orgVaddrPresubmitWeb : orgVaddrPresubmitOfficial) = reinterpret_cast<t_nvaddr_pre_submit>(
+						patcher.routeFunction(presubmit + sizeof(prologue), reinterpret_cast<mach_vm_address_t>(
+						web ? preSubmitHandlerWeb : preSubmitHandlerOfficial), true));
+				if (patcher.getError() == KernelPatcher::Error::NoError) {
+					presubmitBase = presubmit + sizeof(prologue);
+					DBGLOG("ngfx", "routed __ZN21nvVirtualAddressSpace9PreSubmitEv");
+				} else {
+					SYSLOG("ngfx", "failed to route __ZN21nvVirtualAddressSpace9PreSubmitEv");
+				}
+			} else {
+				SYSLOG("ngfx", "prologue mismatch in __ZN21nvVirtualAddressSpace9PreSubmitEv");
+			}
+		} else {
+			SYSLOG("ngfx", "failed to resolve __ZN21nvVirtualAddressSpace9PreSubmitEv");
+		}
+
+		// Then we have to recover the calls to the PreSubmit function, which were removed.
+		if (((web && orgVaddrPresubmitWeb) || (!web && orgVaddrPresubmitOfficial)) && presubmitBase) {
+			const char *symbols[] {
+				"__ZN21nvVirtualAddressSpace12MapMemoryDmaEP11nvSysMemoryP11nvMemoryMapP18nvPageTableMappingj",
+				"__ZN21nvVirtualAddressSpace12MapMemoryDmaEP16__GLNVsurfaceRecjjyj",
+				"__ZN21nvVirtualAddressSpace12MapMemoryDmaEyyPK14MMU_MAP_TARGET",
+				"__ZN21nvVirtualAddressSpace14UnmapMemoryDmaEP11nvSysMemoryP11nvMemoryMapP18nvPageTableMappingj",
+				"__ZN21nvVirtualAddressSpace14UnmapMemoryDmaEP16__GLNVsurfaceRecjjyj",
+				"__ZN21nvVirtualAddressSpace14UnmapMemoryDmaEyy"
+			};
+
+			if (web) {
+				// Web drivers added extra params to these two functions
+				symbols[1] = "__ZN21nvVirtualAddressSpace12MapMemoryDmaEP16__GLNVsurfaceRecjjyjb";
+				symbols[4] = "__ZN21nvVirtualAddressSpace14UnmapMemoryDmaEP16__GLNVsurfaceRecjjyjb";
+			}
+
+			uint8_t seq_rbx[] {0xC6, 0x83, 0x7C, 0x03, 0x00, 0x00, 0x00};
+			uint8_t seq_r13[] {0x41, 0xC6, 0x85, 0x7C, 0x03, 0x00, 0x00, 0x00};
+			uint8_t seq_r12[] {0x41, 0xC6, 0x84, 0x24, 0x7C, 0x03, 0x00, 0x00, 0x00};
+
+			uint8_t rep_rbx[] {0xB0, 0x01, 0xE8, 0x00, 0x00, 0x00, 0x00};
+			uint8_t rep_r13[] {0xB0, 0x02, 0xE8, 0x00, 0x00, 0x00, 0x00, 0x90};
+			uint8_t rep_r12[] {0xB0, 0x03, 0xE8, 0x00, 0x00, 0x00, 0x00, 0x90, 0x90};
+
+			if (web) {
+				// Web drivers have the offsets modified
+				seq_rbx[2] = seq_r13[3] = seq_r12[4] = 0x64;
+			}
+
+			size_t disp_off = 3;
+			// Pick something reasonably high to ensure the sequence is found.
+			size_t max_lookup = 0x1000;
+
+			struct {
+				uint8_t *patch;
+				uint8_t *code;
+				size_t sz;
+			} patches[] {
+				{seq_rbx, rep_rbx, sizeof(seq_rbx)},
+				{seq_r13, rep_r13, sizeof(seq_r13)},
+				{seq_r12, rep_r12, sizeof(seq_r12)}
+			};
+
+			for (auto &sym : symbols) {
+				auto addr = patcher.solveSymbol(index, sym);
+				if (addr) {
+					DBGLOG("ngfx", "obtained %s", sym);
+					patcher.clearError();
+
+					for (size_t off = 0; off < max_lookup; off++) {
+						for (auto &patch : patches) {
+							if (!memcmp(reinterpret_cast<uint8_t *>(addr+off), patch.patch, patch.sz)) {
+								// Calculate the jump offset
+								auto disp = static_cast<int32_t>(presubmitBase - (addr+off+disp_off + 5));
+								DBGLOG("ngfx", "found pattern of %lu bytes at %lu offset, disp %X", patch.sz, off, disp);
+								*reinterpret_cast<int32_t *>(patch.code + disp_off) = disp;
+								patcher.routeBlock(addr+off, patch.code, patch.sz);
+								if (patcher.getError() == KernelPatcher::Error::NoError)
+									DBGLOG("ngfx", "successfully patched %s", sym);
+								else
+									SYSLOG("ngfx", "failed to patch %s", sym);
+								off = max_lookup;
+								break;
+							}
+						}
+					}
+
+				} else {
+					SYSLOG("ngfx", "failed to obtain %s", sym);
+				}
+			}
+		}
+	}
+}
+
 void NGFX::nvAccelerator_SetAccelProperties(IOService* that)
 {
     DBGLOG("ngfx", "SetAccelProperties is called");
@@ -256,7 +400,7 @@ void NGFX::nvAccelerator_SetAccelProperties(IOService* that)
 
 	auto gfx = that->getParentEntry(gIOServicePlane);
 	int gl = gfx && gfx->getProperty("disable-metal");
-	PE_parse_boot_argn("ngfxgl", &gl, sizeof(gl));
+	PE_parse_boot_argn(config.bootargForceOpenGL, &gl, sizeof(gl));
 
 	if (gl) {
 		DBGLOG("ngfx", "disabling metal support");
@@ -354,6 +498,73 @@ int NGFX::csfg_get_platform_binary(void *fg)
     // Default to error
     return 0;
 }
+
+bool NGFX::nvVirtualAddressSpace_PreSubmitOfficial(void *that)
+{
+	if (callbackNGFX && orgVaddrPresubmitOfficial)
+	{
+		bool r = orgSubmitHandlerOfficial(that);
+
+		if (that && r && callbackNGFX->orgFifoPrepare && callbackNGFX->orgFifoComplete)
+		{
+			getMember<uint8_t>(that, 0x37D) = 1;
+			auto fifo = getMember<void *>(that, 0x2B0);
+			if (callbackNGFX->orgFifoPrepare(fifo))
+			{
+				auto fifovt = getMember<void *>(fifo, 0);
+				// Calls to nvGpFifoChannel::PreSubmit
+				auto fifopresubmit = getMember<bool (*)(void *, uint32_t, void *, uint32_t,
+					void *, uint32_t *, uint64_t, uint32_t)>(fifovt, 0x1B0);
+				if (fifopresubmit(fifo, 0x40000, 0, 0, 0, 0, 0, 0))
+				{
+					getMember<uint16_t>(that, 0x37C) = 1;
+					return true;
+				}
+
+				callbackNGFX->orgFifoPrepare(fifo);
+				return false;
+			}
+		}
+
+		return r;
+	}
+
+	return false;
+}
+
+bool NGFX::nvVirtualAddressSpace_PreSubmitWeb(void *that)
+{
+	if (callbackNGFX && orgVaddrPresubmitWeb)
+	{
+		bool r = orgSubmitHandlerWeb(that);
+
+		if (that && r && callbackNGFX->orgFifoPrepare && callbackNGFX->orgFifoComplete)
+		{
+			getMember<uint8_t>(that, 0x365) = 1;
+			auto fifo = getMember<void *>(that, 0x2B0);
+			if (callbackNGFX->orgFifoPrepare(fifo))
+			{
+				auto fifovt = getMember<void *>(fifo, 0);
+				// Calls to nvGpFifoChannel::PreSubmit
+				auto fifopresubmit = getMember<bool (*)(void *, uint32_t, void *, uint32_t,
+														void *, uint32_t *, uint64_t, uint32_t)>(fifovt, 0x1B0);
+				if (fifopresubmit(fifo, 0x40000, 0, 0, 0, 0, 0, 0))
+				{
+					getMember<uint16_t>(that, 0x364) = 1;
+					return true;
+				}
+
+				callbackNGFX->orgFifoPrepare(fifo);
+				return false;
+			}
+		}
+
+		return r;
+	}
+
+	return false;
+}
+
 
 void NGFX::applyPatches(KernelPatcher &patcher, size_t index, const KextPatch *patches, size_t patchNum, const char* name) {
     DBGLOG("ngfx", "applying patch '%s' for %zu kext", name, index);

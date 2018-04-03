@@ -17,6 +17,14 @@ struct KextPatch {
     uint32_t maxKernel;
 };
 
+// Assembly exports for restoreLegacyOptimisations
+extern "C" bool preSubmitHandlerOfficial(void *that);
+extern "C" bool orgSubmitHandlerOfficial(void *that);
+extern "C" bool preSubmitHandlerWeb(void *that);
+extern "C" bool orgSubmitHandlerWeb(void *that);
+extern "C" bool (*orgVaddrPresubmitOfficial)(void *addr);
+extern "C" bool (*orgVaddrPresubmitWeb)(void *addr);
+
 class NGFX {
 public:
 	bool init();
@@ -39,7 +47,18 @@ private:
 	 *  @param size    kinfo memory size
 	 */
 	void processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
-    
+
+	/**
+	 *  Restore legacy optimisations from 10.13.0, which fix lags for Kepler GPUs.
+	 *  For Web drivers it is very experimental, since they have a lot of additional different (broken) code.
+	 *
+	 *  @param patcher KernelPatcher instance
+	 *  @param index   kinfo handle
+	 *  @param address kinfo load address
+	 *  @param size    kinfo memory size
+	 */
+	void restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size, bool web);
+
     /**
      *  SetAccelProperties callback type
      */
@@ -64,7 +83,21 @@ private:
 	 *  NVDAStartupWeb::probe callback type
 	 */
 	using t_nvdastartup_probe = IOService* (*) (IOService *that, IOService * provider, SInt32 *score);
-    
+
+	/**
+	 *  nvGpFifoChannel::Prepare callback type
+	 */
+	using t_fifo_prepare = bool (*)(void *fifo);
+
+	/**
+	 *  nvGpFifoChannel::Complete callback type
+	 */
+	using t_fifo_complete = void (*)(void *fifo);
+
+	/**
+	 *  nvVirtualAddressSpace::PreSubmit callback type
+	 */
+	using t_nvaddr_pre_submit = bool (*) (void *addr);
     
     /**
      *  Hooked methods / callbacks
@@ -77,7 +110,11 @@ private:
     
     static int csfg_get_platform_binary(void *fg);
 
-    
+	static bool nvVirtualAddressSpace_PreSubmitOfficial(void *that);
+
+	static bool nvVirtualAddressSpace_PreSubmitWeb(void *that);
+
+
     /**
      *  Trampolines for original method invocations
      */
@@ -90,7 +127,11 @@ private:
     t_csfg_get_teamid           csfg_get_teamid {nullptr};
 	
 	t_nvdastartup_probe			orgNvdastartupProbe {nullptr};
-    
+
+	t_fifo_prepare				orgFifoPrepare {nullptr};
+
+	t_fifo_complete				orgFifoComplete {nullptr};
+
     
     /**
      *  Apply kext patches for loaded kext index
@@ -117,6 +158,11 @@ private:
 		};
 	};
     int progressState {ProcessingState::NothingReady};
+
+	/**
+	 * Enforce legacy fifo submit, disabled by default.
+	 */
+	int forceLegacyFifoSubmit {1};
     
     static constexpr const char* kNvidiaTeamId { "6KR3T733EC" };
 };
