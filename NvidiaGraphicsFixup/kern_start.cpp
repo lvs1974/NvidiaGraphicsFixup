@@ -28,38 +28,37 @@ const char *Configuration::bootargBeta[] {
 Configuration config;
 
 void Configuration::readArguments() {
-    char tmp[20];
-    if (PE_parse_boot_argn(bootargNoAudioCon, tmp, sizeof(tmp)))
-        noaudioconnectors = true;
-    
-    if (PE_parse_boot_argn(bootargNoAudio, tmp, sizeof(tmp)))
-        noaudiofixes = true;
-    
-    if (PE_parse_boot_argn(bootargNoVARenderer, tmp, sizeof(tmp)))
-        novarenderer = true;
-    
-    if (PE_parse_boot_argn(bootargNoVARenderer, tmp, sizeof(tmp)))
-        novarenderer = true;
-    
-    if (PE_parse_boot_argn(bootargNoLibValFix, tmp, sizeof(tmp)))
-        nolibvalfix = true;
-	
-    if (PE_parse_boot_argn(bootargCompat, &force_compatibility, sizeof(force_compatibility)))
-        DBGLOG("ngfx", "overriding web driver compatibility to %d", force_compatibility);
-	
-    if (PE_parse_boot_argn(bootargPatchList, patch_list, sizeof(patch_list)))
-    {
-        DBGLOG("ngfx", "boot-arg %s specified, value = %s", bootargPatchList, patch_list);
-    }
-    else
-        DBGLOG("ngfx", "use default value = %s for patch list", patch_list);
-}
+	char tmp[20];
+	if (PE_parse_boot_argn(bootargNoAudioCon, tmp, sizeof(tmp)))
+		noaudioconnectors = true;
 
+	if (PE_parse_boot_argn(bootargNoAudio, tmp, sizeof(tmp)))
+		noaudiofixes = true;
+
+	if (PE_parse_boot_argn(bootargNoVARenderer, tmp, sizeof(tmp)))
+		novarenderer = true;
+
+	if (PE_parse_boot_argn(bootargNoVARenderer, tmp, sizeof(tmp)))
+		novarenderer = true;
+
+	if (PE_parse_boot_argn(bootargNoLibValFix, tmp, sizeof(tmp)))
+		nolibvalfix = true;
+
+	if (PE_parse_boot_argn(bootargCompat, &force_compatibility, sizeof(force_compatibility)))
+		DBGLOG("ngfx", "overriding web driver compatibility to %d", force_compatibility);
+
+	if (PE_parse_boot_argn(bootargPatchList, patch_list, sizeof(patch_list)))
+	{
+		DBGLOG("ngfx", "boot-arg %s specified, value = %s", bootargPatchList, patch_list);
+	}
+	else
+		DBGLOG("ngfx", "use default value = %s for patch list", patch_list);
+}
 
 PluginConfiguration ADDPR(config) {
 	xStringify(PRODUCT_NAME),
-    parseModuleVersion(xStringify(MODULE_VERSION)),
-    LiluAPI::AllowNormal | LiluAPI::AllowInstallerRecovery | LiluAPI::AllowSafeMode,
+	parseModuleVersion(xStringify(MODULE_VERSION)),
+	LiluAPI::AllowNormal | LiluAPI::AllowInstallerRecovery | LiluAPI::AllowSafeMode,
 	config.bootargOff,
 	arrsize(config.bootargOff),
 	config.bootargDebug,
@@ -69,7 +68,7 @@ PluginConfiguration ADDPR(config) {
 	KernelVersion::MountainLion,
 	KernelVersion::HighSierra,
 	[]() {
-        config.readArguments();
+		config.readArguments();
 		ngfx.init();
 	}
 };

@@ -8,62 +8,59 @@
 #ifndef kern_config_private_h
 #define kern_config_private_h
 
-
 class Configuration {
 public:
 	/**
 	 *  Possible boot arguments
 	 */
-    static const char *bootargOff[];
-    static const char *bootargDebug[];
-    static const char *bootargBeta[];
-    static constexpr const char *bootargNoAudio      {"-ngfxnoaudio"};        // disable all audio fixes
-    static constexpr const char *bootargNoAudioCon   {"-ngfxnoaudiocon"};     // disable adding of @0,connector-type - @5,connector-type
-    static constexpr const char *bootargNoVARenderer {"-ngfxnovarenderer"};   // disable IOVARenderer injection
-    static constexpr const char *bootargNoLibValFix  {"-ngfxlibvalfix"};      // disable NVWebDriverLibValFix fix
-    static constexpr const char *bootargPatchList    {"ngfxpatch"};           // comma separated patches: cfgmap,pikera,vit9696 (by default)
-    static constexpr const char *bootargCompat       {"ngfxcompat"};          // force compatibility
+	static const char *bootargOff[];
+	static const char *bootargDebug[];
+	static const char *bootargBeta[];
+	static constexpr const char *bootargNoAudio      {"-ngfxnoaudio"};        // disable all audio fixes
+	static constexpr const char *bootargNoAudioCon   {"-ngfxnoaudiocon"};     // disable adding of @0,connector-type - @5,connector-type
+	static constexpr const char *bootargNoVARenderer {"-ngfxnovarenderer"};   // disable IOVARenderer injection
+	static constexpr const char *bootargNoLibValFix  {"-ngfxlibvalfix"};      // disable NVWebDriverLibValFix fix
+	static constexpr const char *bootargPatchList    {"ngfxpatch"};           // comma separated patches: cfgmap,pikera,vit9696 (by default)
+	static constexpr const char *bootargCompat       {"ngfxcompat"};          // force compatibility
 	static constexpr const char *bootargForceOpenGL  {"ngfxgl"};              // force the use of legacy OpenGL APIs
 	static constexpr const char *bootargLegacySubmit {"ngfxsubmit"};          // force legacy-style fifo submit
 
-    
-public:
 	/**
 	 *  Retrieve boot arguments
 	 */
 	void readArguments();
-	
-    /**
-     *  disable all audio fixes
-     */
-    bool noaudiofixes {false};
-    
+
+	/**
+	 *  disable all audio fixes
+	 */
+	bool noaudiofixes {false};
+
 	/**
 	 *  disable adding of @0,connector-type - @5,connector-type
 	 */
-    bool noaudioconnectors {false};
+	bool noaudioconnectors {false};
 
-    /**
-     *  disable IOVARenderer injection
-     */
-    bool novarenderer {false};
-    
-    /**
-     *  disable NVWebDriverLibValFix fix
-     */
-    bool nolibvalfix {false};
-    
-    /**
-     *  patch list (can be separated by comma, space or something like that)
-     */
-    char patch_list[64] {"vit9696"};
-	
+	/**
+	 *  disable IOVARenderer injection
+	 */
+	bool novarenderer {false};
+
+	/**
+	 *  disable NVWebDriverLibValFix fix
+	 */
+	bool nolibvalfix {false};
+
+	/**
+	 *  patch list (can be separated by comma, space or something like that)
+	 */
+	char patch_list[64] {"vit9696"};
+
 	/**
 	 *  ignore compatibility check in driver
 	 */
 	int force_compatibility {-1};
 
-    Configuration() = default;
+	Configuration() = default;
 };
 
 extern Configuration config;

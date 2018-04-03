@@ -13,6 +13,7 @@ An open source kernel extension providing patches for NVidia GPUs.
   [NVWebDriverLibValFix](https://github.com/mologie/NVWebDriverLibValFix)
 - Injects IOVARendererID into GPU properties (required for Shiki-based solution for non-freezing Intel and/or any discrete GPU)
 - Allows to use ports HDMI, DP, Digital DVI with audio (Injects @0connector-type - @5connector-type properties into GPU)
+- Fixes interface stuttering on 10.13 (official and web drivers)
 
 #### Boot-args
 - `-ngfxoff` disables kext loading
@@ -27,7 +28,7 @@ An open source kernel extension providing patches for NVidia GPUs.
 - `ngfxpatch=pikera` replaces `board-id` with `board-ix`
 - `ngfxgl=1` boot argument (and `disable-metal` property) to disable Metal support
 - `ngfxcompat=1` boot argument (and `force-compat` property) to ignore compatibility check in NVDAStartupWeb
-
+- `ngfxsubmit=0` boot argument to disable interface stuttering fix on 10.13
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS  
