@@ -1,7 +1,10 @@
 NvidiaGraphicsFixup Changelog
 =============================
+
 #### v1.2.5
+- Hardened solved symbol verification to avoid panics with broken kext cache
 - Added a workaround to interface lags in 10.13 ( add `ngfxsubmit=0` boot-argument to disable)
+- Fixed improperly working forced driver compatibility from 1.2.4
 
 With this change you may not need to disable Metal support. Make sure to restore CoreDisplay preferences:
 ```
