@@ -255,7 +255,7 @@ void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach
 	}
 
 	int fifoSubmit = 1;
-	PE_parse_boot_argn(config.bootargLegacySubmit, &fifoSubmit, sizeof(fifoSubmit));
+	PE_parse_boot_argn(Configuration::bootargLegacySubmit, &fifoSubmit, sizeof(fifoSubmit));
 	DBGLOG("ngfx", "read legacy fifo submit as %d", fifoSubmit);
 
 	if (!fifoSubmit) {
@@ -411,7 +411,7 @@ void NGFX::nvAccelerator_SetAccelProperties(IOService* that)
 
 	auto gfx = that->getParentEntry(gIOServicePlane);
 	int gl = gfx && gfx->getProperty("disable-metal");
-	PE_parse_boot_argn(config.bootargForceOpenGL, &gl, sizeof(gl));
+	PE_parse_boot_argn(Configuration::bootargForceOpenGL, &gl, sizeof(gl));
 
 	if (gl) {
 		DBGLOG("ngfx", "disabling metal support");
