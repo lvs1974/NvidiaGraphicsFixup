@@ -1,6 +1,9 @@
 NvidiaGraphicsFixup Changelog
 =============================
 
+#### v1.2.6
+- Made `ngfxcompat=0` explicitly disable NVDAStartupWeb.kext loading from HDD
+
 #### v1.2.5
 - Hardened solved symbol verification to avoid panics with broken kext cache
 - Added a workaround to interface lags in 10.13 ( add `ngfxsubmit=0` boot-argument to disable)

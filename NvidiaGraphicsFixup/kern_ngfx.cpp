@@ -55,6 +55,14 @@ bool (*orgVaddrPresubmitOfficial)(void *addr) = nullptr;
 bool (*orgVaddrPresubmitWeb)(void *addr) = nullptr;
 
 bool NGFX::init() {
+	// The code below (enabled by ngfxcompat=0) is not only relevant for a not so important optimisation
+	// to avoid loading NVDAStartupWeb from HDD but actually reduces the crash rate of a nasty memory
+	// corruption existing in the latest NVIDIA Pascal Web driver (yes, it is not a NvidiaGraphicsFixup bug).
+	// https://i.applelife.ru/2018/04/427585_Panic.txt
+	// https://i.applelife.ru/2018/04/427558_FCP.txt
+	if (config.force_compatibility == 0)
+		kextList[KextNVDAStartupWeb].pathNum = 0;
+
 	if (getKernelVersion() > KernelVersion::Mavericks && getKernelVersion() < KernelVersion::HighSierra)
 	{
 		LiluAPI::Error error = lilu.onPatcherLoad(
