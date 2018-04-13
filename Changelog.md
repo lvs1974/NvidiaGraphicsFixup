@@ -3,6 +3,7 @@ NvidiaGraphicsFixup Changelog
 
 #### v1.2.6
 - Made `ngfxcompat=0` explicitly disable NVDAStartupWeb.kext loading from HDD
+- Disabled AGDC patches for compatible models to avoid issues with IGPU switching on MacBooks
 
 #### v1.2.5
 - Hardened solved symbol verification to avoid panics with broken kext cache

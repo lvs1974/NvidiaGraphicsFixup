@@ -60,26 +60,23 @@ bool NGFX::init() {
 	// corruption existing in the latest NVIDIA Pascal Web driver (yes, it is not a NvidiaGraphicsFixup bug).
 	// https://i.applelife.ru/2018/04/427585_Panic.txt
 	// https://i.applelife.ru/2018/04/427558_FCP.txt
-	if (config.force_compatibility == 0)
+	if (config.force_compatibility == 0) {
 		kextList[KextNVDAStartupWeb].pathNum = 0;
-
-	if (getKernelVersion() > KernelVersion::Mavericks && getKernelVersion() < KernelVersion::HighSierra)
-	{
-		LiluAPI::Error error = lilu.onPatcherLoad(
-		  [](void *user, KernelPatcher &patcher) {
-			  callbackNGFX = static_cast<NGFX *>(user);
-			  callbackNGFX->processKernel(patcher);
-		  }, this);
-
-		if (error != LiluAPI::Error::NoError) {
-			SYSLOG("ngfx", "failed to register onPatcherLoad method %d", error);
-			return false;
-		}
-	} else {
-		progressState |= ProcessingState::KernelRouted;
+		progressState |= ProcessingState::NVDAStartupWebRouted;
 	}
 
-	LiluAPI::Error error = lilu.onKextLoad(kextList, kextListSize,
+	LiluAPI::Error error = lilu.onPatcherLoad(
+	  [](void *user, KernelPatcher &patcher) {
+		  callbackNGFX = static_cast<NGFX *>(user);
+		  callbackNGFX->processKernel(patcher);
+	  }, this);
+
+	if (error != LiluAPI::Error::NoError) {
+		SYSLOG("ngfx", "failed to register onPatcherLoad method %d", error);
+		return false;
+	}
+
+	error = lilu.onKextLoad(kextList, kextListSize,
 		[](void *user, KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 			callbackNGFX = static_cast<NGFX *>(user);
 			callbackNGFX->processKext(patcher, index, address, size);
@@ -97,30 +94,64 @@ void NGFX::deinit() {
 }
 
 void NGFX::processKernel(KernelPatcher &patcher) {
-	if (!(progressState & ProcessingState::KernelRouted))
-	{
-		if (!config.nolibvalfix) {
-			auto method_address = patcher.solveSymbol(KernelPatcher::KernelID, "_csfg_get_teamid");
-			if (method_address) {
-				DBGLOG("ngfx", "obtained _csfg_get_teamid");
-				csfg_get_teamid = reinterpret_cast<t_csfg_get_teamid>(method_address);
-
-				method_address = patcher.solveSymbol(KernelPatcher::KernelID, "_csfg_get_platform_binary");
-				if (method_address ) {
-					DBGLOG("ngfx", "obtained _csfg_get_platform_binary");
-					patcher.clearError();
-					org_csfg_get_platform_binary = reinterpret_cast<t_csfg_get_platform_binary>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(csfg_get_platform_binary), true));
-					if (patcher.getError() == KernelPatcher::Error::NoError) {
-						DBGLOG("ngfx", "routed _csfg_get_platform_binary");
-					} else {
-						SYSLOG("ngfx", "failed to route _csfg_get_platform_binary");
+	if (!(progressState & ProcessingState::KernelRouted)) {
+		if (!strcmp(config.patch_list, "detect")) {
+			lilu_os_strncpy(config.patch_list, "vit9696", sizeof(config.patch_list));
+			char boardIdentifier[64] {};
+			if (WIOKit::getComputerInfo(nullptr, 0, boardIdentifier, sizeof(boardIdentifier))) {
+				// We do not need AGDC patches on compatible devices.
+				// On native hardware they are harmful, since they may kill IGPU support.
+				// See https://github.com/lvs1974/NvidiaGraphicsFixup/issues/13
+				const char *compatibleBoards[] {
+					"Mac-00BE6ED71E35EB86", // iMac13,1
+					"Mac-27ADBB7B4CEE8E61", // iMac14,2
+					"Mac-4B7AC7E43945597E", // MacBookPro9,1
+					"Mac-77EB7D7DAF985301", // iMac14,3
+					"Mac-C3EC7CD22292981F", // MacBookPro10,1
+					"Mac-C9CF552659EA9913", // ???
+					"Mac-F221BEC8",         // MacPro5,1 (and MacPro4,1)
+					"Mac-F221DCC8",         // iMac10,1
+					"Mac-F42C88C8",         // MacPro3,1
+					"Mac-FC02E91DDD3FA6A4", // iMac13,2
+					"Mac-2BD1B31983FE1663"  // MacBookPro11,3
+				};
+				for (size_t i = 0; i < arrsize(compatibleBoards); i++) {
+					if (!strcmp(compatibleBoards[i], boardIdentifier)) {
+						DBGLOG("ngfx", "disabling nvidia patches on model %s", boardIdentifier);
+						kextList[KextAGDPolicy].pathNum = 0;
+						progressState |= ProcessingState::GraphicsDevicePolicyPatched;
+						config.patch_list[0] = '\0';
+						break;
 					}
-				} else {
-					SYSLOG("ngfx", "failed to resolve _csfg_get_platform_binary");
 				}
+			}
+		}
 
-			} else {
-				SYSLOG("ngfx", "failed to resolve _csfg_get_teamid");
+
+		if (getKernelVersion() > KernelVersion::Mavericks && getKernelVersion() < KernelVersion::HighSierra) {
+			if (!config.nolibvalfix) {
+				auto method_address = patcher.solveSymbol(KernelPatcher::KernelID, "_csfg_get_teamid");
+				if (method_address) {
+					DBGLOG("ngfx", "obtained _csfg_get_teamid");
+					csfg_get_teamid = reinterpret_cast<t_csfg_get_teamid>(method_address);
+
+					method_address = patcher.solveSymbol(KernelPatcher::KernelID, "_csfg_get_platform_binary");
+					if (method_address ) {
+						DBGLOG("ngfx", "obtained _csfg_get_platform_binary");
+						patcher.clearError();
+						org_csfg_get_platform_binary = reinterpret_cast<t_csfg_get_platform_binary>(patcher.routeFunction(method_address, reinterpret_cast<mach_vm_address_t>(csfg_get_platform_binary), true));
+						if (patcher.getError() == KernelPatcher::Error::NoError) {
+							DBGLOG("ngfx", "routed _csfg_get_platform_binary");
+						} else {
+							SYSLOG("ngfx", "failed to route _csfg_get_platform_binary");
+						}
+					} else {
+						SYSLOG("ngfx", "failed to resolve _csfg_get_platform_binary");
+					}
+
+				} else {
+					SYSLOG("ngfx", "failed to resolve _csfg_get_teamid");
+				}
 			}
 		}
 
