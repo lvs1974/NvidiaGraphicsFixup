@@ -148,11 +148,11 @@ private:
 	struct ProcessingState {
 		enum {
 			NothingReady = 0,
-			GraphicsDevicePolicyPatched = 2,
-			GeForceRouted = 4,
-			GeForceWebRouted = 8,
-			NVDAStartupWebRouted = 16,
-			KernelRouted = 32,
+			GraphicsDevicePolicyPatched = 1,
+			GeForceRouted = 2,
+			GeForceWebRouted = 4,
+			NVDAStartupWebRouted = 8,
+			KernelRouted = 16,
 			EverythingDone = GraphicsDevicePolicyPatched | GeForceRouted | GeForceWebRouted | NVDAStartupWebRouted | KernelRouted,
 		};
 	};

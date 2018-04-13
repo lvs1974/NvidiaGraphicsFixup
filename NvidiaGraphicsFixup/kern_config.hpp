@@ -53,7 +53,7 @@ public:
 	/**
 	 *  patch list (can be separated by comma, space or something like that)
 	 */
-	char patch_list[64] {"vit9696"};
+	char patch_list[64] {"detect"};
 
 	/**
 	 *  ignore compatibility check in driver
