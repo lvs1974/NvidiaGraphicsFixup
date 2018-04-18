@@ -1,5 +1,7 @@
 NvidiaGraphicsFixup Changelog
 =============================
+#### v1.2.7
+- Removed interface lags workaround for the Web drivers (starting with 387.10.10.10.30.106 it is present in the distribution)
 
 #### v1.2.6
 - Made `ngfxcompat=0` explicitly disable NVDAStartupWeb.kext loading from HDD

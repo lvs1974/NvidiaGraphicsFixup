@@ -20,10 +20,7 @@ struct KextPatch {
 // Assembly exports for restoreLegacyOptimisations
 extern "C" bool preSubmitHandlerOfficial(void *that);
 extern "C" bool orgSubmitHandlerOfficial(void *that);
-extern "C" bool preSubmitHandlerWeb(void *that);
-extern "C" bool orgSubmitHandlerWeb(void *that);
 extern "C" bool (*orgVaddrPresubmitOfficial)(void *addr);
-extern "C" bool (*orgVaddrPresubmitWeb)(void *addr);
 
 class NGFX {
 public:
@@ -57,7 +54,7 @@ private:
 	 *  @param address kinfo load address
 	 *  @param size    kinfo memory size
 	 */
-	void restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size, bool web);
+	void restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
 
 	/**
 	 *  SetAccelProperties callback type
@@ -111,9 +108,6 @@ private:
 	static int csfg_get_platform_binary(void *fg);
 
 	static bool nvVirtualAddressSpace_PreSubmitOfficial(void *that);
-
-	static bool nvVirtualAddressSpace_PreSubmitWeb(void *that);
-
 
 	/**
 	 *  Trampolines for original method invocations

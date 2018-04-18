@@ -52,7 +52,6 @@ static NGFX *callbackNGFX = nullptr;
 
 // Used by asm code
 bool (*orgVaddrPresubmitOfficial)(void *addr) = nullptr;
-bool (*orgVaddrPresubmitWeb)(void *addr) = nullptr;
 
 bool NGFX::init() {
 	// The code below (enabled by ngfxcompat=0) is not only relevant for a not so important optimisation
@@ -233,7 +232,7 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 						}
 					}
 
-					restoreLegacyOptimisations(patcher, index, address, size, false);
+					restoreLegacyOptimisations(patcher, index, address, size);
 
 					progressState |= ProcessingState::GeForceRouted;
 				}
@@ -255,8 +254,6 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 							SYSLOG("ngfx", "failed to resolve __ZN19nvAcceleratorParent18SetAccelPropertiesEv");
 						}
 					}
-
-					restoreLegacyOptimisations(patcher, index, address, size, true);
 
 					progressState |= ProcessingState::GeForceWebRouted;
 				}
@@ -287,7 +284,7 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	patcher.clearError();
 }
 
-void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size, bool web) {
+void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	if (getKernelVersion() < KernelVersion::HighSierra) {
 		DBGLOG("ngfx", "not bothering vaddr presubmit performance fix on pre-10.13");
 		return;
@@ -333,9 +330,8 @@ void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach
 			if (!memcmp(reinterpret_cast<void *>(presubmit), prologue, sizeof(prologue))) {
 				patcher.routeBlock(presubmit, uprologue, sizeof(uprologue));
 				if (patcher.getError() == KernelPatcher::Error::NoError)
-					(web ? orgVaddrPresubmitWeb : orgVaddrPresubmitOfficial) = reinterpret_cast<t_nvaddr_pre_submit>(
-						patcher.routeFunction(presubmit + sizeof(prologue), reinterpret_cast<mach_vm_address_t>(
-						web ? preSubmitHandlerWeb : preSubmitHandlerOfficial), true));
+					orgVaddrPresubmitOfficial = reinterpret_cast<t_nvaddr_pre_submit>(
+						patcher.routeFunction(presubmit + sizeof(prologue), reinterpret_cast<mach_vm_address_t>(preSubmitHandlerOfficial), true));
 				if (patcher.getError() == KernelPatcher::Error::NoError) {
 					presubmitBase = presubmit + sizeof(prologue);
 					DBGLOG("ngfx", "routed __ZN21nvVirtualAddressSpace9PreSubmitEv");
@@ -350,7 +346,7 @@ void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach
 		}
 
 		// Then we have to recover the calls to the PreSubmit function, which were removed.
-		if (((web && orgVaddrPresubmitWeb) || (!web && orgVaddrPresubmitOfficial)) && presubmitBase) {
+		if (orgVaddrPresubmitOfficial && presubmitBase) {
 			const char *symbols[] {
 				"__ZN21nvVirtualAddressSpace12MapMemoryDmaEP11nvSysMemoryP11nvMemoryMapP18nvPageTableMappingj",
 				"__ZN21nvVirtualAddressSpace12MapMemoryDmaEP16__GLNVsurfaceRecjjyj",
@@ -360,12 +356,6 @@ void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach
 				"__ZN21nvVirtualAddressSpace14UnmapMemoryDmaEyy"
 			};
 
-			if (web) {
-				// Web drivers added extra params to these two functions
-				symbols[1] = "__ZN21nvVirtualAddressSpace12MapMemoryDmaEP16__GLNVsurfaceRecjjyjb";
-				symbols[4] = "__ZN21nvVirtualAddressSpace14UnmapMemoryDmaEP16__GLNVsurfaceRecjjyjb";
-			}
-
 			uint8_t seq_rbx[] {0xC6, 0x83, 0x7C, 0x03, 0x00, 0x00, 0x00};
 			uint8_t seq_r13[] {0x41, 0xC6, 0x85, 0x7C, 0x03, 0x00, 0x00, 0x00};
 			uint8_t seq_r12[] {0x41, 0xC6, 0x84, 0x24, 0x7C, 0x03, 0x00, 0x00, 0x00};
@@ -373,11 +363,6 @@ void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach
 			uint8_t rep_rbx[] {0xB0, 0x01, 0xE8, 0x00, 0x00, 0x00, 0x00};
 			uint8_t rep_r13[] {0xB0, 0x02, 0xE8, 0x00, 0x00, 0x00, 0x00, 0x90};
 			uint8_t rep_r12[] {0xB0, 0x03, 0xE8, 0x00, 0x00, 0x00, 0x00, 0x90, 0x90};
-
-			if (web) {
-				// Web drivers have the offsets modified
-				seq_rbx[2] = seq_r13[3] = seq_r12[4] = 0x64;
-			}
 
 			size_t disp_off = 3;
 			// Pick something reasonably high to ensure the sequence is found.
@@ -581,40 +566,6 @@ bool NGFX::nvVirtualAddressSpace_PreSubmitOfficial(void *that)
 
 	return false;
 }
-
-bool NGFX::nvVirtualAddressSpace_PreSubmitWeb(void *that)
-{
-	if (callbackNGFX && orgVaddrPresubmitWeb)
-	{
-		bool r = orgSubmitHandlerWeb(that);
-
-		if (that && r && callbackNGFX->orgFifoPrepare && callbackNGFX->orgFifoComplete)
-		{
-			getMember<uint8_t>(that, 0x365) = 1;
-			auto fifo = getMember<void *>(that, 0x2B0);
-			if (callbackNGFX->orgFifoPrepare(fifo))
-			{
-				auto fifovt = getMember<void *>(fifo, 0);
-				// Calls to nvGpFifoChannel::PreSubmit
-				auto fifopresubmit = getMember<bool (*)(void *, uint32_t, void *, uint32_t,
-														void *, uint32_t *, uint64_t, uint32_t)>(fifovt, 0x1B0);
-				if (fifopresubmit(fifo, 0x40000, 0, 0, 0, 0, 0, 0))
-				{
-					getMember<uint16_t>(that, 0x364) = 1;
-					return true;
-				}
-
-				callbackNGFX->orgFifoPrepare(fifo);
-				return false;
-			}
-		}
-
-		return r;
-	}
-
-	return false;
-}
-
 
 void NGFX::applyPatches(KernelPatcher &patcher, size_t index, const KextPatch *patches, size_t patchNum, const char* name) {
 	DBGLOG("ngfx", "applying patch '%s' for %zu kext", name, index);
