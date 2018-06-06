@@ -1,6 +1,15 @@
 NvidiaGraphicsFixup Changelog
 =============================
 
+#### v1.2.7
+- Fix a name conflict for config variable
+
+#### v1.2.6
+- Fixed compiling with older Xcode
+- Removed interface lags workaround for the Web drivers (starting with 387.10.10.10.30.106 it is present in the distribution), closes #15
+- Made ngfxcompat=0 explicitly disable NVDAStartupWeb.kext loading from HDD
+- Disabled AGDC patches for compatible models to avoid issues with IGPU switching on MacBooks
+
 #### v1.2.5
 - Hardened solved symbol verification to avoid panics with broken kext cache
 - Added a workaround to interface lags in 10.13 ( add `ngfxsubmit=0` boot-argument to disable)
