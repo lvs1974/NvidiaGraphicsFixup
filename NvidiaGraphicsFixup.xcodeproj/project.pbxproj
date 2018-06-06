@@ -15,7 +15,6 @@
 		CEA2DF342072B8D5009BD0E2 /* kern_ngfx_asm.S in Sources */ = {isa = PBXBuildFile; fileRef = CEA2DF332072B8D5009BD0E2 /* kern_ngfx_asm.S */; };
 		F65909931F7E8A4F005C96D1 /* kern_audio.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F65909911F7E8A4F005C96D1 /* kern_audio.hpp */; };
 		F65909941F7E8A4F005C96D1 /* kern_audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F65909921F7E8A4F005C96D1 /* kern_audio.cpp */; };
-		F69B33D91F9BCECD00F26009 /* FAQ.md in Resources */ = {isa = PBXBuildFile; fileRef = F69B33D81F9BCECC00F26009 /* FAQ.md */; };
 		F6AA9BFB1F927574004D869C /* kern_config.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F6AA9BFA1F927574004D869C /* kern_config.hpp */; };
 /* End PBXBuildFile section */
 
@@ -230,7 +229,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F69B33D91F9BCECD00F26009 /* FAQ.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,7 +247,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "cd \"${TARGET_BUILD_DIR}\"\n\ndist=(\"$FULL_PRODUCT_NAME\")\nif [ -d \"$DWARF_DSYM_FILE_NAME\" ]; then dist+=(\"$DWARF_DSYM_FILE_NAME\"); fi\n\narchive=\"${MODULE_VERSION} ($(echo $CONFIGURATION | tr /a-z/ /A-Z/)).zip\"\nrm -rf *.zip\nzip -qry \"${archive}\" \"${dist[@]}\"";
+			shellScript = "cd \"${TARGET_BUILD_DIR}\"\n\ndist=(\"$FULL_PRODUCT_NAME\")\nif [ -d \"$DWARF_DSYM_FILE_NAME\" ]; then dist+=(\"$DWARF_DSYM_FILE_NAME\"); fi\n\narchive=\"${MODULE_VERSION} ($(echo $CONFIGURATION | tr /a-z/ /A-Z/)).zip\"\nrm -rf *.zip\nif [ \"$CONFIGURATION\" == \"Release\" ]; then\n  strip -x -T \"${EXECUTABLE_PATH}\" &>/dev/null || strip -x \"${EXECUTABLE_PATH}\"\nfi\nzip -qry \"${archive}\" \"${dist[@]}\"";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -273,7 +271,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_CXX_LANGUAGE_STANDARD = "c++14";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
@@ -318,7 +316,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_CXX_LANGUAGE_STANDARD = "c++14";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;

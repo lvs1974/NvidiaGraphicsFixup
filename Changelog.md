@@ -1,5 +1,11 @@
 NvidiaGraphicsFixup Changelog
 =============================
+#### v1.2.7
+- Fix a name conflict for config variable
+
+#### v1.2.6
+- Made `ngfxcompat=0` explicitly disable NVDAStartupWeb.kext loading from HDD
+- Disabled AGDC patches for compatible models to avoid issues with IGPU switching on MacBooks
 
 #### v1.2.7
 - Fix a name conflict for config variable
