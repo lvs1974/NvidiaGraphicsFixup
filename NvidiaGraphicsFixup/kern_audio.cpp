@@ -55,7 +55,7 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
 		return nullptr;
 	}
 
-	if (config.noaudiofixes) {
+	if (ADDPR(ngfx_config).noaudiofixes) {
 		DBGLOG("audio", "all audio fixes are disabled");
 		return nullptr;
 	}
@@ -186,7 +186,7 @@ IOService *NVidiaAudio::probe(IOService *hdaService, SInt32 *score) {
 		DBGLOG("audio", "found existing layout-id in hdau");
 	}
 
-	if (!config.noaudioconnectors && !gpuService->getProperty("no-audio-fixconn")) {
+	if (!ADDPR(ngfx_config).noaudioconnectors && !gpuService->getProperty("no-audio-fixconn")) {
 		uint8_t builtBytes[] { 0x00, 0x08, 0x00, 0x00 };
 		char connector_type[] { "@0,connector-type" };
 		for (int i=0; i<MaxConnectorCount; ++i)

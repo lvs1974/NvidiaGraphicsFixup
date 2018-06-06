@@ -25,7 +25,7 @@ const char *Configuration::bootargBeta[] {
 	"-ngfxbeta"
 };
 
-Configuration config;
+Configuration ADDPR(ngfx_config);
 
 void Configuration::readArguments() {
 	char tmp[20];
@@ -68,7 +68,7 @@ PluginConfiguration ADDPR(config) {
 	KernelVersion::MountainLion,
 	KernelVersion::HighSierra,
 	[]() {
-		config.readArguments();
+		ADDPR(ngfx_config).readArguments();
 		ngfx.init();
 	}
 };

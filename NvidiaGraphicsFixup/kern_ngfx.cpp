@@ -91,7 +91,7 @@ void NGFX::deinit() {
 void NGFX::processKernel(KernelPatcher &patcher) {
 	if (!(progressState & ProcessingState::KernelRouted))
 	{
-		if (!config.nolibvalfix) {
+		if (!ADDPR(ngfx_config).nolibvalfix) {
 			auto method_address = patcher.solveSymbol(KernelPatcher::KernelID, "_csfg_get_teamid");
 			if (method_address) {
 				DBGLOG("ngfx", "obtained _csfg_get_teamid");
@@ -131,9 +131,9 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				{
 					DBGLOG("ngfx", "found %s", kextList[i].id);
 
-					const bool patch_vit9696 = (strstr(config.patch_list, "vit9696") != nullptr);
-					const bool patch_pikera  = (strstr(config.patch_list, "pikera")  != nullptr);
-					const bool patch_cfgmap  = (strstr(config.patch_list, "cfgmap")  != nullptr);
+					const bool patch_vit9696 = (strstr(ADDPR(ngfx_config).patch_list, "vit9696") != nullptr);
+					const bool patch_pikera  = (strstr(ADDPR(ngfx_config).patch_list, "pikera")  != nullptr);
+					const bool patch_cfgmap  = (strstr(ADDPR(ngfx_config).patch_list, "cfgmap")  != nullptr);
 
 					if (patch_vit9696)
 					{
@@ -177,7 +177,7 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				}
 				else if (!(progressState & ProcessingState::GeForceRouted) && i == KextGeForce)
 				{
-					if (!config.novarenderer) {
+					if (!ADDPR(ngfx_config).novarenderer) {
 						DBGLOG("ngfx", "found %s", kextList[i].id);
 						auto method_address = patcher.solveSymbol(index, "__ZN13nvAccelerator18SetAccelPropertiesEv", address, size);
 						if (method_address) {
@@ -200,7 +200,7 @@ void NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				}
 				else if (!(progressState & ProcessingState::GeForceWebRouted) && i == KextGeForceWeb)
 				{
-					if (!config.novarenderer) {
+					if (!ADDPR(ngfx_config).novarenderer) {
 						DBGLOG("ngfx", "found %s", kextList[i].id);
 						auto method_address = patcher.solveSymbol(index, "__ZN19nvAcceleratorParent18SetAccelPropertiesEv", address, size);
 						if (method_address) {
@@ -467,7 +467,7 @@ IOService* NGFX::NVDAStartupWeb_probe(IOService *that, IOService * provider, SIn
 	DBGLOG("ngfx", "NVDAStartupWeb::probe is called");
 	if (callbackNGFX && callbackNGFX->orgNvdastartupProbe)
 	{
-		int comp = config.force_compatibility;
+		int comp = ADDPR(ngfx_config).force_compatibility;
 		if (comp < 0)
 			comp = provider && provider->getProperty("force-compat");
 
