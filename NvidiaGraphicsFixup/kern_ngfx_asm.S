@@ -56,35 +56,3 @@ _orgSubmitHandlerOfficial:
 	// Jump to the original code
 	mov _orgVaddrPresubmitOfficial(%rip), %rax
 	jmp *%rax
-
-.globl _preSubmitHandlerWeb
-_preSubmitHandlerWeb:
-	// Choose the routing
-	test %al, %al
-	// Standard routing (for normal calls)
-	jz __ZN4NGFX34nvVirtualAddressSpace_PreSubmitWebEPv
-	// Wrapped routing (for patched calls)
-	cmp $1,%al
-	jz handle_rbx_web
-	cmp $2,%al
-	jz handle_r13_web
-	cmp $3,%al
-	jz handle_r12_web
-	// Do we need more registers?
-	ud2
-handle_rbx_web:
-	PRESUBMIT_FROM_REG(%rbx, __ZN4NGFX34nvVirtualAddressSpace_PreSubmitWebEPv)
-handle_r13_web:
-	PRESUBMIT_FROM_REG(%r13, __ZN4NGFX34nvVirtualAddressSpace_PreSubmitWebEPv)
-handle_r12_web:
-	PRESUBMIT_FROM_REG(%r12, __ZN4NGFX34nvVirtualAddressSpace_PreSubmitWebEPv)
-
-.globl _orgSubmitHandlerWeb
-_orgSubmitHandlerWeb:
-	// This is the prologue we patched out
-	push %rbp
-	mov %rsp, %rbp
-	// Jump to the original code
-	mov _orgVaddrPresubmitWeb(%rip), %rax
-	jmp *%rax
-
